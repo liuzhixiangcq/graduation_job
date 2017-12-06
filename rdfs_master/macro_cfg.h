@@ -1,0 +1,46 @@
+#ifndef MACRO_CIG_H
+
+#define MACRO_CIG_H
+
+#define SCHEDULE_COUNT 5
+#define THRESHOLD (1024*1)     //4MB//256KB
+
+#define TIME_SLEEP 10000
+
+#define HOTSPOTLENGTH 512
+#define SCALE 0.2
+
+#define PER_SWAP_COUNT (1024*10) //10M//4M//256kB
+
+
+#define PER_HOT_SHIFT 20 //1M
+
+
+#define FAULT_ALIGN	(1<<12) //no per fetch
+
+#define BIO_MAX	128 //4K*128=512K
+
+#define PER_READ ((FAULT_ALIGN>>12) - 1)
+
+#define MAX_BUFF_LENGTH PER_READ
+
+
+#define COUNT_PER_ALLOC 512
+#define BDEV_VIRT_AERA	0x400000000 //12G/8*4K == 6T 
+#define BDEV_VIRT_ADDR  0xffffe90000000000
+#define DEFAYLT_CAPACITY 512
+#define MAX_CAPACITY	(256*1024)//256K represent 1M ssd space
+
+#define NUMA_NODE0_MASK  0x3f03f      //000000 111111 000000 111111
+#define NUMA_NODE1_MASK  0xfc0fc0     //111111 000000 111111 000000
+
+#define NUMA_MASK	NUMA_NODE1_MASK
+
+#define CPU_NR 	24
+
+#define rdfs_NUMA_LINE 		(0x1880000000)
+
+#define __MAX_FILE_SIZE			(1<<25)
+
+#endif
+
