@@ -33,65 +33,22 @@
   #include<linux/kdev_t.h>
   #include "rdfs.h"
 
-  #define FK_SIZE  (1<<12)
-  #define TM_SIZE  (1<<21)
-  #define OTM_SIZE (1<<27)
-  #define OG_SIZE  (1<<30)
-
-
-typedef struct slave_test
-{
-	unsigned long slave_id;
-	unsigned long mem_size;
-	unsigned long phy_addr;
-}slave_test;
-
-typedef struct mem_node
-{
-	unsigned long cur_addr;
-	struct mem_node *pre_node;
-	struct mem_node *next_node;
-	unsigned long mem_size;
-	unsigned long slave_id;
-}mem_node;
-
-typedef struct slave_info
-{
-	unsigned long mem_size;
-	unsigned long phy_addr;
-	unsigned long slave_id;
-	struct mem_node **free_list;
-	unsigned long cur_mem_size;
-}slave_info;
-
-struct index_struct
-{
-    unsigned long  sum;
-    struct mem_node *p;
-};
-
-struct index_search_result
-{
-    unsigned long  slave_id;
-    unsigned long  start_addr;
-    unsigned long  size;
-    unsigned long  block_type;
-    unsigned long  file_offset;
-};
-
-  unsigned long path_to_inode(char *path);
-  void rdfs_init_mem_node(struct mem_node *head_node,unsigned long  size);
-  void rdfs_add_mem_to_list(unsigned long slave_id,unsigned long index,unsigned long size,unsigned long phy_addr);
-  unsigned long rdfs_split_mem_from_toplist(unsigned long slave_id,unsigned long index);
-  void rdfs_split_mem(unsigned long slave_id,unsigned long smallpersent,unsigned long largepersent);
-  void rdfs_init_freelist(unsigned long slave_id,unsigned long mem_size,unsigned long phy_addr);
-  unsigned long rdfs_get_new_block(unsigned long slave_id,unsigned long size,struct mem_node *block);
-  unsigned long rdfs_new_block_update(unsigned long size,struct mem_node *block);
-  void rdfs_free_blcok(unsigned long size,unsigned long phy_addr,unsigned slave_id);
-  void dmfs_index_init(struct rdfs_inode_info *inode);
-  void dmfs_index_free(struct rdfs_inode_info *inode);
-  void dmfs_index_update(struct rdfs_inode_info *inode);
-  int dmfs_new_block(struct rdfs_inode_info *inode,unsigned long size);
-  unsigned long dmfs_block_search(struct rdfs_inode_info *inode,unsigned long key);
-  unsigned long dmfs_index_search(struct rdfs_inode_info *inode,loff_t offset,unsigned long size,struct index_search_result *result);
+  struct mem_bitmap
+  {
+      unsigned long map[BITMAP_ARRAY_LEN];
+      spin_lock_t map_lock;
+      int flag;//whether has free block
+  };
+  struct slave_info
+  {
+     struct rdfs_context * ctx;
+     struct ib_device * dev ;
+     int slave_id;
+     int slave_status;
+     int free_block_nums;
+     int bitmap_array_nums;
+     spin_lock_t slave_lock;
+     struct mem_bitmap **bitmap;
+  };
+  
  #endif

@@ -29,13 +29,10 @@
  static int slave_register_service_stop_flag = 0;
  static int client_request_service_stop_flag = 0;
  
- struct list_head slave_list;
+ struct slave_info slave_infos[MAX_SLAVE_NUMS];
 
  static int slave_id = 0;
- int rdfs_slave_list_init()
- {
-     INIT_LIST_HEAD(&slave_list);
- }
+
  static int rdfs_process_register(struct service_info* s_info)
  {
     rdfs_trace();
@@ -49,16 +46,24 @@
     int m_type;
     retval = rdfs_recv_message(s_info->sock.c_sock,ctx_p,&m_type);
     retval = rdfs_send_message(s_info->sock.c_sock,ctx_p,MASTER_CTX_INFO);
-    struct slave_info * s_info_p = ()kmalloc(sizeof(struct slave_info),GFP_KERNEL);
-    if(s_info_p == NULL)
-    {
-        printk("%s --> malloc slave_info failed\n",__FUNCTION__);
-        return -1;
-    }
+    
+    
+    slave_infos[slave_id].slave_id = slave_id;
+    slave_infos[slave_id].ctx = ctx_p;
+    slave_infos[slave_id].dev = s_info->dev;
+    slave_infos[slave_id].free_block_nums = ctx_p->block_nums;
+    //slave_infos[slave_id].block_nums = ctx_p->block_nums;
+    spin_lock_init(&slave_infos[slave_id].slave_lock);
+    //spin_lock()
+    rdfs_init_slave_memory_bitmap_list(&slave_infos[slave_id]);
     slave_id ++;
-    s_info_p->slave_id = slave_id;
-    s_info_p->ctx = ctx_p;
-    list_add(&s_info_p.list,&slave_list); 
+    return 0;
+ }
+ static int rdfs_remove_register(struct slave_info* slave)
+ {
+    rdfs_free_slave_memory_bitmap_list(&slave->bitmap);
+    rdfs_remove_context(slave->ctx,slave->dev);
+    slave->status = SLAVE_REMOVED;
     return 0;
  }
  static int rdfs_process_request(struct host_info* host_p)

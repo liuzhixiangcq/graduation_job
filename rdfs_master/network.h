@@ -29,6 +29,9 @@
  #define SLAVE_CTX_TO_CLIENT_INFO 300
  #define CLIENT_CTX_INFO 400
 
+ #define SLAVE_ALIVE   1
+ #define SLAVE_REMOVED 2
+
  struct service_info
  {
      char ip[IP_LEN];
@@ -42,12 +45,7 @@
      struct socket * s_sock;// create
      struct socket * c_sock;// accept
  };
- struct slave_info
- {
-    struct rdfs_context * ctx;
-    int slave_id;
-    struct list_head list;
- };
+ 
 
  struct rdfs_message
  {

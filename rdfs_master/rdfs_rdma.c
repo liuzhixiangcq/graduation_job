@@ -3,6 +3,35 @@
  * rdfs_master/rdfs_rdma.c
  */
 
+ int rdfs_remove_context(struct rdfs_context * ctx_p,struct ib_device *dev)
+ {
+    if(ctx_p->qp)
+    {
+        ib_destry_qp(ctx_p->qp);
+    }
+    /*
+    if(ctx_p->recv_cq)
+    {
+
+    }
+    if(ctx_p->send_cq)
+    {
+
+    }
+    */
+    /*
+    if(ctx_p->mr)
+    {
+
+    }
+    */
+    if(ctx_p->pd)
+    {
+        ib_dealloc_pd(dev);
+    }
+    kfree(ctx_p);
+    return 0;
+ }
  struct rdfs_context* rdfs_init_context(struct ib_device *dev)
  {
      rdfs_trace();
@@ -39,7 +68,9 @@
      ctx_p->qp_attr.cap.max_inline_data = 0;
      ctx_p->qp_attr.qp_type =  IB_QPT_RC;
      ctx_p->qp_attr.sq_sig_type = IB_SIGNAL_ALL_WR;
+
      ctx_p->qp = ib_create_qp(ctx_p->pd,&ctx_p->qp_attr);
+     if(rdfs_check_pointer(ctx_p->qp))return NULL;
 
      ib_query_port(dev,INFINIBAND_DEV_PORT,&host_info.ib_port_attr);
      ctx_p->rkey = ctx_p->mr->rkey;
