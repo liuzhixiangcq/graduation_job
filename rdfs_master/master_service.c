@@ -51,17 +51,16 @@
     slave_infos[slave_id].slave_id = slave_id;
     slave_infos[slave_id].ctx = ctx_p;
     slave_infos[slave_id].dev = s_info->dev;
-    slave_infos[slave_id].free_block_nums = ctx_p->block_nums;
-    //slave_infos[slave_id].block_nums = ctx_p->block_nums;
-    spin_lock_init(&slave_infos[slave_id].slave_lock);
-    //spin_lock()
-    rdfs_init_slave_memory_bitmap_list(&slave_infos[slave_id]);
+    slave_infos[slave_id].slave_status = SLAVE_ALIVE;
+    slave_infos[slave_id].slave_sock = (s_info->sock).c_sock;
+    spin_lock_init(&slave_infos[slave_id].slave_free_list_lock);
+    rdfs_init_slave_memory_list(&slave_infos[slave_id]);
     slave_id ++;
     return 0;
  }
  static int rdfs_remove_register(struct slave_info* slave)
  {
-    rdfs_free_slave_memory_bitmap_list(&slave->bitmap);
+    rdfs_free_slave_memory_list(slave);
     rdfs_remove_context(slave->ctx,slave->dev);
     slave->status = SLAVE_REMOVED;
     return 0;
@@ -107,19 +106,19 @@
      {
          return -1;
      }
-     retval = kernel_bind((host.sock).s_sock,(struct sockaddr*)&server_addr,sizeof(struct sockaddr_in));
+     retval = kernel_bind((s_info.sock).s_sock,(struct sockaddr*)&server_addr,sizeof(struct sockaddr_in));
      if(retval)
      {
          return -1;
      }
-     retval = kernel_listen((host.sock).s_sock,SERVER_SOCK_LISTEN_NUMS);
+     retval = kernel_listen((s_info.sock).s_sock,SERVER_SOCK_LISTEN_NUMS);
      if(retval)
      {
          return -1;
      }
      while(1)
      {
-         retval = kernel_accept((host.sock).s_sock,&(host.sock).c_sock,0);
+         retval = kernel_accept((s_info.sock).s_sock,&(s_info.sock).c_sock,0);
          if(retval)
          {
              continue;

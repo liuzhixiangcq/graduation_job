@@ -4,118 +4,190 @@
  */
 
  
-#include <linux/fs.h>
-#include <linux/sched.h>
-#include <linux/aio.h>
-#include <linux/slab.h>
-#include <linux/uio.h>
-#include <linux/mm.h>
-#include <linux/uaccess.h>
-
-#include <linux/delay.h>
-#include <linux/sched.h>
-#include <linux/bio.h>
-#include <linux/rwlock.h>
-
-#include <asm/barrier.h>
-#include <asm/tlbflush.h>
-
- #include<linux/fs.h>
- #include<linux/kernel.h>
- #include<linux/init.h>
- #include<asm/unistd.h>
- #include<asm/uaccess.h>
- #include<linux/types.h>
- #include<linux/fcntl.h>
- #include<linux/dirent.h>
- #include<linux/kdev_t.h>
-
-#include "rdfs.h"
-#include "inode.h"
-#include "debug.h"
-#include "balloc.h"
-#include "memory.h"
-#include "rdfs_config.h"
-#include "network.h"
-
-extern struct slave_info slave_infos[MAX_SLAVE_NUMS];
-
-int rdfs_init_slave_memory_bitmap_list(struct slave_info * s)
-{
-	int block_nums = s->free_block_nums;
-	int array_nums = block_nums / BITMAP_ARRAY_BLOCK_NUMS + 1;
-	
-	int rest_block_nums = block_nums % BITMAP_ARRAY_BLOCK_NUMS;
-	s->bitmap_array_nums = array_nums;
-	struct mem_bitmap ** bitmap = (struct mem_bitmap*)kmalloc(sizeof(struct mem_bitmap) * array_nums);
-	int i,j;
-	for(i=0;i<array_nums;i++)
+ #include <linux/fs.h>
+ #include <linux/sched.h>
+ #include <linux/aio.h>
+ #include <linux/slab.h>
+ #include <linux/uio.h>
+ #include <linux/mm.h>
+ #include <linux/uaccess.h>
+ 
+ #include <linux/delay.h>
+ #include <linux/sched.h>
+ #include <linux/bio.h>
+ #include <linux/rwlock.h>
+ 
+ #include <asm/barrier.h>
+ #include <asm/tlbflush.h>
+ 
+  #include<linux/fs.h>
+  #include<linux/kernel.h>
+  #include<linux/init.h>
+  #include<asm/unistd.h>
+  #include<asm/uaccess.h>
+  #include<linux/types.h>
+  #include<linux/fcntl.h>
+  #include<linux/dirent.h>
+  #include<linux/kdev_t.h>
+ 
+ #include "rdfs.h"
+ #include "inode.h"
+ #include "debug.h"
+ #include "balloc.h"
+ #include "memory.h"
+ #include "rdfs_config.h"
+ #include "network.h"
+ 
+ extern struct slave_info slave_infos[MAX_SLAVE_NUMS];
+ struct pte_mem * pte_free_list;
+ int rdfs_init_slave_memory_list(struct slave_info*s)
+ {
+	int block_nums = s->ctx->block_nums;
+	s->free_block_nums = block_nums;
+	s->total_block_nums = block_nums;
+	s->head = NULL;
+	int i;
+	struct mem_block *tmp = NULL;
+	struct mem_block *pre = NULL;
+	for(i=0;i<block_nums;i++)
 	{
-		spin_lock_init(&bitmap[i]->map_lock);
-		bitmap[i]->flag = 1;
-		memset(bitmap[i]->map,0,sizeof(unsigned long)*BITMAP_ARRAY_LEN);
-		if(i == array_nums -1 && rest_block_nums)
+		tmp = (struct mem_block*)kmalloc(sizeof(struct mem_block),GFP_KERNEL);
+		tmp->block_id = i;
+		tmp->next = NULL;
+		if(i == 0)
 		{
-			int tmp = rest_block_nums / 64;
-			for(j=0;j<tmp;j++)
-				bitmap[i]->map[j] = BITMAP_MASK;
-			int r = rest_block_nums % 64;
-			if(r)
-			{
-				unsigned long t = 0;
-				for(k=0;k<r;k++)
-					t |= (1<<r);
-				bitmap[i]->map[j+1] = t;
-			}	
+			s->head = tmp;
+			pre = tmp;
 		}
 		else
 		{
-			for(j=0;j<BITMAP_ARRAY_LEN;j++)
-				bitmap[i]->map[j] = BITMAP_MASK;
+			pre->next = tmp;
+			pre = tmp;
 		}
 	}
-	s->bitmap = bitmap;
 	return 0;
-}
-int rdfs_free_slave_memory_bitmap_list(struct slave_info *s)
-{
-	s->free_block_nums = 0;
-	kfree(s->bitmap);
-	return 0;
-}
-//1 means free ,0 means alloced
-int rdfs_new_block(int *s_id,int *block_num)
-{
-	int id = rand() % slave_id;
-
-	struct mem_bitmap **bitmap = slave_infos[id].bitmap;
-
-	int array_id = rand() % slave_infos[id].bitmap_array_nums;
-	while(!bitmap[array_id]->flag)
-		array_id = rand() % slave_infos[id].bitmap_array_nums;
+ }
+ int rdfs_free_slave_memory_list(struct slave_infos*s)
+ {
+	int block_nums = s->free_block_nums;
 	int i;
-	unsigned long bits;
-	unsigned long res;
-	spin_lock(&bitmap[array_id]->map_lock);
-	for(i=0;i<BITMAP_ARRAY_LEN;i++)
+	spin_lock(&s->slave_free_list_lock);
+	struct mem_block *tmp = s->head;
+	struct mem_block *next = NULL;
+	for(i=0;i<block_nums;i++)
 	{
-		bits = bitmap[array_id]->map[i];
-		res = bits & (~bits + 1);
-		if(res == 0)continue;
-		bitmap[array_id]->map[i] ^= res;
+		next = tmp->next;
+		kfree(tmp);
 	}
-	*s_id = id;
-	int cnt = 0;
-	while(res!=1)
-	{
-		res = res >> 1;
-		cnt++;
-	}
-	*block_num = array_id * BITMAP_ARRAY_BLOCK_NUMS + i * 64 + cnt;
-	spin_unlock(&bitmap[array_id]->map_lock);
+	s->head = NULL;
+	spin_unlock(&s->slave_free_list_lock);
 	return 0;
-}
-int rdfs_free_block(int s_id,int block_num)
-{
+ }
+ unsigned long rdfs_alloc_slave_memory(struct slave_info *s)
+ {
+	 struct mem_block * tmp = NULL;
+	 struct mem_block * use = NULL;
+	 unsigned long  block_id ;
+	 spin_lock(&s->slave_free_list_lock);
+	 if(!s->free_block_nums)
+	 {
+		 printk("%s -- > slave memory spave not enough\n",__FUNCTION__);
+		 return -1;
+	 }
+	 tmp = s->head->next;
+	 use = s->head;
+	 s->head = tmp;
+	 spin_unlock(&s->slave_free_list_lock);
+	 block_id = (unsigned long)use->block_id;
+	 kfree(use);
+	 return block_id;
+ }
+ int rdfs_free_slave_memory(struct slave_info *s,block_id)
+ {
+	 struct mem_block * tmp = NULL;
+	 tmp = (struct mem_block*)kmalloc(sizeof(struct mem_block),GFP_KERNEL);
+	 spin_lock(&s->slave_free_list_lock);
+	 tmp->block_id = block_id;
+	 tmp->next = s->head;
+	 s->head = tmp;
+	 spin_unlock(&s->slave_free_list_lock);
+	 return 0;
+ }
 
-}
+ int rdfs_init_pte_free_list(int page_nums)
+ {
+	 unsigned long phyaddr;
+	 rdfs_new_block(&phyaddr,page_nums,NULL);
+	 int pte_nums = page_nums * 4096 / 8;
+	 pte_free_list = (struct pte_mem*)kmalloc(sizeof(struct pte_mem),GFP_KERNEL);
+	 pte_free_list->free_pte_nums = pte_nums;
+	 pte_free_list->total_page_nums = page_nums;
+	 pte_free_list->pte_start_addr = phyaddr;
+	 pte_free_list->start_addr = phyaddr;
+	 spin_lock_init(&pte_free_list->pte_lock);
+	 int i;
+	 unsigned long * tmp = rdfs_va(phyaddr);
+	 unsigned long next_pte_phyaddr = phyaddr + 8;
+	 for(i=0;i<pte_nums;i++)
+	 {
+		*tmp = next_pte_phyaddr;
+		tmp = rdfs_va(next_pte_phyaddr);
+		next_pte_phyaddr += 8;
+	 }
+	 return 0;
+ }
+ int rdfs_free_pte_free_list()
+ {
+	 spin_lock(&pte_free_list->pte_lock);
+	 int i;
+	 phyaddr_t phyaddr = pte_free_list->start_addr;
+	 for(i=0;i<pte_free_list->total_page_nums;i++)
+	 {
+		 rdfs_free_block(sb,phyaddr);
+		 phyaddr += PAGE_SIZE;
+	 }
+	 spin_unlock(&pte_free_list->pte_lock);
+	 kfree(pte_free_list);
+	 return 0;
+ }
+ int rdfs_select_slave()
+ {
+	 return 0;
+ }
+ int rdfs_new_pte(unsigned long *phyaddr)
+ {
+	 int s_id = rdfs_select_slave();
+	 spin_lock(&pte_free_list->pte_lock);
+	 if(pte_free_list->free_pte_nums < nums)
+	 {
+		 printk("%s -- pte_free_list not enogh\n",__FUNCTION__);
+		 spin_unlock(&pte_free_list->pte_lock);
+		 return -1;
+	 }
+	 int i;
+	 *phyaddr = pte_free_list->pte_start_addr;
+	 unsigned long tmp;
+	 unsigned long pte_value;
+	 tmp = pte_free_list->pte_start_addr;
+	 pte_free_list->pte_start_addr = *(rdfs_va(tmp));
+	 block_id = rdfs_alloc_slave_memory(s);
+	 pte_value = (s_id << SLAVE_ID_SHIFT) & block_id; 
+	 *(rdfs_va(tmp)) = pte_value;
+	 spin_unlock(&pte_free_list->pte_lock);
+	 return 0;
+ }
+ int rdfs_free_pte(unsigned long phyaddr)
+ {
+	 int s_id;
+	 int block_id;
+	 unsigned long pte_val = *(rdfs_va(phyaddr));
+	 s_id = pte_val >> SLAVE_ID_SHIFT;
+	 block_id = pte_val & SLAVE_ID_MASK;
+	 struct slave_info *s = &slave_infos[s_id];
+	 rdfs_free_slave_memory(s,block_id);
+	 spin_lock(&pte_free_list->pte_lock);
+	 *rdfs_va(phyaddr) = pte_free_list->pte_start_addr;
+	 pte_free_list->pte_start_addr = phyaddr;
+	 spin_unlock(&pte_free_list->pte_lock);
+	 return 0;
+ }

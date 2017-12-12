@@ -136,7 +136,7 @@ void rdfs_truncate_blocks(struct inode *inode, loff_t start, loff_t end)
 	rdfs_update_inode(inode);
 }
 
-int rdfs_alloc_blocks(struct inode *inode, int num, int zero)
+int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type)
 {
 	rdfs_trace();
 	struct super_block *sb = inode->i_sb;
@@ -161,21 +161,31 @@ int rdfs_alloc_blocks(struct inode *inode, int num, int zero)
 		pud = rdfs_get_pud(sb, ino);
 		nvmap(sb, vaddr, pud, mm);
 	}
-	errval = rdfs_new_block(&phys, num, ni);
-
+	if(type == ALLOC_PAGE)
+		errval = rdfs_new_block(&phys, num, ni);
+	errval = 0;
     if(!errval)
     {
         for(i = 0;i < num; i++)
         {
-            temp = (unsigned long *)(rdfs_va(phys));
-    	    phys = *temp;
+			if(type == ALLOC_PAGE)
+			{
+				temp = (unsigned long *)(rdfs_va(phys));
+				phys = *temp;
+				if (zero==0)memset(temp, 0, PAGE_SIZE);
+			}
+			else
+			{
+				rdfs_new_pte(temp);
+			}
             
-            if (zero==0)
-	            memset(temp, 0, PAGE_SIZE);
+	           
             inode->i_blocks++;
             ni->i_blocks =  cpu_to_le32(inode->i_blocks);
-            errval = rdfs_insert_page(sb, inode, rdfs_pa(temp));
-
+			if(type == ALLOC_PAGE)
+				errval = rdfs_insert_page(sb, inode, rdfs_pa(temp));
+			else
+				errval = rdfs_insert_page(sb,inode,*temp);
             if(unlikely(errval != 0))
                 return errval;
         }

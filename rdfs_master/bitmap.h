@@ -33,15 +33,11 @@
   #include<linux/kdev_t.h>
   #include "rdfs.h"
 
-  #define ALLOC_PAGE 1
-  #define ALLOC_PTE  2
-
-  #define SLAVE_ID_SHIFT 51
-  #define SLAVE_ID_MASK  0x000fffffffffffff
-  struct mem_block
+  struct mem_bitmap
   {
-    int block_id;
-    struct mem_block *next;
+      unsigned long map[BITMAP_ARRAY_LEN];
+      spin_lock_t map_lock;
+      int flag;//whether has free block
   };
   struct slave_info
   {
@@ -49,21 +45,10 @@
      struct ib_device * dev ;
      int slave_id;
      int slave_status;
-
      int free_block_nums;
-     int toal_block_nums;
-     
-     spin_lock_t slave_free_list_lock;
-     struct mem_block * head;
-     
-     struct socket *slave_sock;
+     int bitmap_array_nums;
+     spin_lock_t slave_lock;
+     struct mem_bitmap **bitmap;
   };
-  struct pte_mem
-  {
-        unsigned long pte_start_addr;
-        int free_pte_nums;
-        int total_page_nums;
-        spin_lock_t pte_lock;
-        int start_addr;
-  };
+  
  #endif

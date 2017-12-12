@@ -159,34 +159,6 @@ void bdev_insert_a_page(unsigned long address)
 	}
 }
 
-void rdfs_bindcore(unsigned long core_bits)
-{
-	rdfs_trace();
-	int cpu_id;
-	cpumask_t mask;
-	cpus_clear(mask);
-	mask.bits[0]=core_bits;
-	set_cpus_allowed(current,mask);
-	cpu_id=smp_processor_id();
-	if(!((1<<cpu_id)&core_bits))
-	{
-		schedule();
-	}
-}
-
-void   rdfs_bind_cpu_by_ino(int ino)
-{
-	rdfs_trace();
-	if((ino&0x1)==0)
-	{
-		rdfs_bindcore(NUMA_NODE1_MASK);
-	}
-	else
-	{
-		rdfs_bindcore(NUMA_NODE0_MASK);
-	}
-}
-
 void print_pgtable(struct mm_struct* mm,unsigned long address)
 {
 	rdfs_trace();
