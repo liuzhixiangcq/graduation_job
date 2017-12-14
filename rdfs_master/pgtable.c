@@ -350,3 +350,12 @@ int rdfs_destroy_mapping(struct inode *inode)
 	ni_info->i_virt_addr = 0;
 	return errval;
 }
+
+int rdfs_search_metadata(struct rdfs_inode_info * ri_info,unsigned long offset,unsigned long *s_id,unsigned long *block_id)
+{
+    unsigned long pte_value = 0;
+    pte_value = *(unsigned long *)(ri_info->i_virt_addr + offset);
+    *s_id = pte_value >> SLAVE_ID_SHIFT;
+    *block_id = pte_value & SLAVE_ID_MASK;
+    return 0;
+}

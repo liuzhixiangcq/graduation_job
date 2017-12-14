@@ -32,6 +32,7 @@ static int rdfs_open_file(struct inode *inode, struct file *filp)
 {
 	rdfs_trace();
 	int errval = 0;
+	errval = rdfs_establish_mapping(inode);
 	struct rdfs_inode* nv_i = get_rdfs_inode(inode->i_sb,inode->i_ino);
 	filp->f_flags |= O_DIRECT;
 	if(S_ISREG(inode->i_mode))
@@ -48,24 +49,96 @@ static int rdfs_release_file(struct file * file)
 	unsigned long vaddr;
 	int err = 0;
 	struct rdfs_inode* ni = get_rdfs_inode(inode->i_sb,inode->i_ino);
+	vaddr = (unsigned long)ni_info->i_virt_addr;
+	if(vaddr)
+	{
+		if(atomic_dec_and_test(&ni_info->i_p_counter))
+		{
+			err = rdfs_destroy_mapping(inode);
+		}
+	}
 	return err;
 }
 
+char * local_rw_buffer;
+unsigned long local_rw_addr;
 
-unsigned long dma_start_addr = 0x210000000;
-char __user *current_buf;
-unsigned long current_length;
-extern int posted_req_cnt;
-
+static int rdfs_init_local_rw_buffer()
+{
+	local_rw_buffer = (char*)kmalloc(RDFS_BLOCK_SIZE,GFP_KERNEL);
+	local_rw_addr = rdfs_mapping_address(local_rw_buffer,RDFS_BLOCK_SIZE,ctx_idx);
+	return 0;
+}
+static int rdfs_destroy_local_rw_buffer()
+{
+	kfree(local_rw_buffer);
+	return 0;
+}
 ssize_t rdfs_local_file_read(struct file *filp,char __user *buf,size_t length,loff_t *ppos)
 {
 	rdfs_trace();
+	struct address_space *mapping = filp->f_mapping;
+	struct inode * inode = mapping->host;
+	struct rdfs_inode * ri = get_rdfs_inode(inode->i_sb,inode->i_ino);
+	struct rdfs_inode_info * ri_info = RDFS_I(inode);
+	size_t retval = 0,copied = 0;
 
+	unsigned long offset = *ppos;
+	unsigned long start = offset,end = offset + length;
+	unsigned long i = 0,pte = 0,block_offset = 0;
+	unsigned long s_id = 0,block_id = 0;
+	unsigned long size = 0;
+	for(i=start;i<end;)
+	{
+		pte = i >> RDFS_BLOCK_SHIFT;
+		block_offset = i & RDFS_BLOCK_OFFSET_MASK;
+		i += RDFS_BLOCK_SIZE - block_offset;
+		size = RDFS_BLOCK_SIZE - block_offset;
+		retval = rdfs_search_metadata(ri_info,pte,&s_id,&block_id);
+		retval = rdfs_rdma_block_rw(local_rw_addr,s_id,block_id,block_offset,RDFS_READ);
+		copied += __copy_to_user(buf+copied,local_rw_buffer,size);
+	}
+	return length - copied;
 }
 
 ssize_t rdfs_local_file_write(struct file *filp,const char __user *buf,size_t length,loff_t *ppos)
 {
 	rdfs_trace();
+	struct address_space *mapping = filp->f_mapping;
+	struct inode * inode = mapping->host;
+	struct rdfs_inode * ri = get_rdfs_inode(inode->i_sb,inode->i_ino);
+	struct rdfs_inode_info * ri_info = RDFS_I(inode);
+	size_t retval = 0;
+
+	long pages_exist = 0,pages_to_alloc = 0,pages_needed = 0;
+	pages_needed = (*ppos + length + sb->s_blocksize -1) >> sb->s_blocksize_bits;
+	pages_exist = (size + sb->s_blocksize - 1) >> sb->s_blocksize_bits;
+	pages_to_alloc = pages_needed - pages_exist;
+	if(pages_to_alloc > 0)
+	{
+		retval = rdfs_alloc_blocks(inode,pages_to_alloc,1,ALLOC_PAGE);
+		if(retval < 0)
+		{
+			printk("%s --> rdfs_alloc_blocks failed\n",__FUNCTION__);
+			return retval;
+		}
+	}
+	unsigned long offset = *ppos;
+	unsigned long start = offset,end = offset + length;
+	unsigned long i = 0,pte = 0,block_offset = 0;
+	unsigned long s_id = 0,block_id = 0;
+	unsigned long size = 0,copied = 0;
+	for(i=start;i<end;)
+	{
+		pte = i >> RDFS_BLOCK_SHIFT;
+		block_offset = i & RDFS_BLOCK_OFFSET_MASK;
+		i += RDFS_BLOCK_SIZE - block_offset;
+		size = RDFS_BLOCK_SIZE - block_offset;
+		retval = __copy_from_user(local_rw_buffer,buf,size);
+		retval = rdfs_search_metadata(ri_info,pte,&s_id,&block_id);
+		copied += rdfs_rdma_block_rw(local_rw_addr,s_id,block_id,block_offset,RDFS_WRITE);
+	}
+	return length - copied;
 }
 static int rdfs_check_flags(int flags)
 {

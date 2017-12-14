@@ -55,7 +55,7 @@
      
      spin_lock_t slave_free_list_lock;
      struct mem_block * head;
-     
+     struct mem_bitmap_block *bitmap_head;
      struct socket *slave_sock;
   };
   struct pte_mem
@@ -65,5 +65,19 @@
         int total_page_nums;
         spin_lock_t pte_lock;
         int start_addr;
+  };
+  struct mem_bitmap_block
+  {
+    unsigned long slave_id;
+    unsigned long start_block_id;
+    struct mem_bitmap_block * next;
+  };
+  struct pre_alloc_bitmap
+  {
+    unsigned long pre_alloc_bitmap;
+    unsigned long pre_start_block_id;
+    int pre_alloc_slave_id;
+    int pre_index;
+    spin_lock_t bitmap_lock;
   };
  #endif

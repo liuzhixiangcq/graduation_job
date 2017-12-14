@@ -30,7 +30,7 @@
  static int client_request_service_stop_flag = 0;
  
  struct slave_info slave_infos[MAX_SLAVE_NUMS];
-
+ struct rdfs_context * slave_ctx[MAX_SLAVE_NUMS];
  static int slave_id = 0;
 
  static int rdfs_process_register(struct service_info* s_info)
@@ -42,6 +42,9 @@
         rdfs_debug_msg(__FUNCTION__,"rdfs_init_context failed\n");
         return -1;
     }
+
+    slave_ctx[slave_id] = ctx_p;
+    
     int retval;
     int m_type;
     retval = rdfs_recv_message(s_info->sock.c_sock,ctx_p,&m_type);

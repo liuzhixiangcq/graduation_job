@@ -45,9 +45,9 @@ struct rdfs_inode
 	__le32  *i_hot_dram;
 	__le32  i_cold_page_start;
 	__le32  i_cold_page_num;
-	unsigned long  block_num;
-	struct index_struct *index;
-	struct mem_node *blocks;
+	//unsigned long  block_num;
+	//struct index_struct *index;
+	//struct mem_node *blocks;
 };
 struct swap_buffer
 {
@@ -73,11 +73,14 @@ struct rdfs_inode_info
 	unsigned long access_length;
 	int mapping_count;
 	int per_read;
-	unsigned long  block_num;
-	struct index_struct *index;
-	struct mem_node *blocks;
+//	unsigned long  block_num;
+//	struct index_struct *index;
+//	struct mem_node *blocks;
 	long file_size;
 
+	struct pre_alloc_bitmap *pre_bitmap;
+	spin_lock_t used_bitmap_list_lock;
+	struct mem_bitmap_block * used_bitmap_list;
 
 	struct rdfs_inode* rdfs_inode;
 

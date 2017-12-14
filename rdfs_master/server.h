@@ -79,8 +79,10 @@ struct rdfs_context
     int rem_psn;
     int rem_lid;
     unsigned long rem_block_nums;
-    struct rdfs_remote_memory rrm;
-	struct slave_test slave_t;
+
+    unsigned long lock_word;
+    //struct rdfs_remote_memory rrm;
+	//struct slave_test slave_t;
 };
 typedef enum {RDMA_READ,RDMA_WRITE} RDMA_OP;
 struct rdma_request

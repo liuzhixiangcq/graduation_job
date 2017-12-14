@@ -43,21 +43,24 @@ void comp_handler_send(struct ib_cq* cq,void *cq_context)
 {
     rdfs_trace();
     struct ib_wc wc;
+    u64 req_word = 0, s_id = 0,req_id = 0;
     do 
     {
         while(ib_poll_cq(cq,1,&wc)>0)
         {
             if(wc.status == IB_WC_SUCCESS)
             {
-		        u64 req_id = wc.wr_id;
-		        clear_bit_unlock(req_id,&ctx[current_client].max_req_id.lock_word);
-		        wake_up_bit(&ctx[current_client].max_req_id.lock_word,req_id);
-		        posted_req_cnt--;
-		        if(current_length > 0)
-		        {	
-			        ssize_t ret = __copy_to_user(current_buf,rdfs_va(dma_start_addr),current_length);
-			        current_length = 0;
-		        }
+                req_word = wc.wr_id;
+                s_id = req_word >> SLAVE_ID_SHIFT;
+                clear_bit_unlock(0,slave_ctx[s_id]->)
+		       // clear_bit_unlock(req_id,&ctx[current_client].max_req_id.lock_word);
+		       // wake_up_bit(&ctx[current_client].max_req_id.lock_word,req_id);
+		       // posted_req_cnt--;
+		       /// if(current_length > 0)
+		       // {	
+			  //      ssize_t ret = __copy_to_user(current_buf,rdfs_va(dma_start_addr),current_length);
+			 //       current_length = 0;
+		      //  }
             }
             else
             {
@@ -453,6 +456,14 @@ u64 rdfs_new_client_block(int client_idx)
 {
 	rdfs_trace();
 	return rdfs_rmalloc(&ctx[client_idx].rrm);
+}
+unsigned long rdfs_rdma_block_rw(unsigned long local_dma_addr,unsigned long s_id,unsigned long block_id,unsigned long block_offset,int rw_flag)
+{
+    struct rdma_request req;
+    u64 size = RDFS_BLOCK_SIZE;
+    req.local_dma_addr = local_dma_addr;
+    req.remote_dma_addr = slave_ctx[s_id]->rem_addr + block_id * size + block_offset;
+
 }
 int rdfs_block_rw(u64 rdfs_block,int rw,phys_addr_t phys,u64 req_id,int client_idx)
 {
