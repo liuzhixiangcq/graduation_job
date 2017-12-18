@@ -41,17 +41,9 @@ struct rdma_host_info
 */
 struct rdfs_req_id
 {
-     u64 max_req_id;
+     u64 current_req_id;
      unsigned long lock_word;
      spinlock_t req_id_lock;
-};
-
-struct rdfs_remote_memory
-{
-	int pages[MAX_PAGE_NUM];
-	int page_num;
-	int free_page_num;
-	int freelist_head;
 };
 
 struct rdfs_context
@@ -62,7 +54,7 @@ struct rdfs_context
     struct ib_qp * qp;
     struct ib_qp_init_attr qp_attr;
     struct ib_mr *mr;//
-    struct rdfs_req_id max_req_id;
+    struct rdfs_req_id req_id;
     int active_mtu;//
     int lid;//
     int qpn;//
@@ -80,9 +72,6 @@ struct rdfs_context
     int rem_lid;
     unsigned long rem_block_nums;
 
-    unsigned long lock_word;
-    //struct rdfs_remote_memory rrm;
-	//struct slave_test slave_t;
 };
 typedef enum {RDMA_READ,RDMA_WRITE} RDMA_OP;
 struct rdma_request

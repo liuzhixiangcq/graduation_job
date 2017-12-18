@@ -66,7 +66,7 @@ unsigned long local_rw_addr;
 static int rdfs_init_local_rw_buffer()
 {
 	local_rw_buffer = (char*)kmalloc(RDFS_BLOCK_SIZE,GFP_KERNEL);
-	local_rw_addr = rdfs_mapping_address(local_rw_buffer,RDFS_BLOCK_SIZE,ctx_idx);
+	local_rw_addr = rdfs_mapping_address(local_rw_buffer,RDFS_BLOCK_SIZE,0);
 	return 0;
 }
 static int rdfs_destroy_local_rw_buffer()

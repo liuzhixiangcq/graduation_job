@@ -82,9 +82,9 @@
 
      ib_query_gid(dev,INFINIBAND_DEV_PORT,0,&ctx_p->gid);
 
-     ctx_p->max_req_id.max_req_id = 0;
-     ctx_p->max_req_id.lock_word = 0;
-     spin_lock_init(&ctx_p->max_req_id.req_id_lock);
+     ctx_p->req_id.current_req_id = 0;
+     ctx_p->req_id.lock_word = 0;
+     spin_lock_init(&ctx_p->req_id.req_id_lock);
          
      return ctx_p;
  }
