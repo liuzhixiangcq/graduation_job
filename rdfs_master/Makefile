@@ -1,7 +1,7 @@
 obj-m:= rdfs.o 
-rdfs-objs = acl.o  debug.o pgtable.o rdfs_swap.o balloc.o   namei.o \
-symlink.o file.o  nvmalloc.o rdfs_page_fault.o \
- dir.o inode.o rdfs_inode_lru_op.o server.o memory.o \
+rdfs-objs = acl.o  debug.o pgtable.o  balloc.o   namei.o \
+symlink.o file.o  nvmalloc.o network.o master_service.o \
+ dir.o inode.o  server.o memory.o device.o rdfs_rdma.o \
  main.o tool.o super.o
 .PHONY:load unload
 all:

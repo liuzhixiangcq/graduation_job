@@ -30,7 +30,6 @@
  void set_default_opts(struct rdfs_sb_info *sbi);
  loff_t rdfs_max_size(int bits);
  int isdigit(int ch);
- int rdfs_swap_buffer_free(struct rdfs_inode_info *ni_info);
  phys_addr_t get_phys_addr(void **data);
  int calc_super_checksum(void);
  int rdfs_ioremap(struct super_block *sb, unsigned long size);

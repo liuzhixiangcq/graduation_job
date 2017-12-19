@@ -17,6 +17,7 @@
 #include "nvmalloc.h"
 #include "debug.h"
 #include "balloc.h"
+#include "memory.h"
 static inline pud_t *rdfs_pud_alloc_one(void)
 {
 	rdfs_trace();
@@ -127,13 +128,14 @@ int rdfs_init_pg_table(struct super_block * sb, u64 ino)
     pmd_t *pmd;
     pte_t *pte;
     struct rdfs_inode *ni = get_rdfs_inode(sb, ino);
-  //  printk("%s ni:%lx\n",__FUNCTION__,ni);
+    printk("%s ni:%lx\n",__FUNCTION__,ni);
     pud = rdfs_pud_alloc_one();
     pmd = rdfs_pmd_alloc_one();
     pte = rdfs_pte_alloc_one();
     
     if (pud == NULL || pmd == NULL || pte == NULL) {
-        rdfs_error(sb, __FUNCTION__, "init file page table failed!\n");
+        printk("%s init file page table failed\n",__FUNCTION__);
+        //rdfs_error(sb, __FUNCTION__, "init file page table failed!\n");
         return -PGFAILD;
     }
 
@@ -142,7 +144,7 @@ int rdfs_init_pg_table(struct super_block * sb, u64 ino)
     rdfs_set_pud(pud, pmd);
 
     ni->i_pg_addr = rdfs_pa(pud);
-  //  printk("%s pg_addr:%lx pud:%x->pmd:%lx,pmd:%lx->pte:%lx pte:%lx->pte val:%lx\n",__FUNCTION__,ni->i_pg_addr,pud,*pud,pmd,*pmd,pte,*pte);
+    printk("%s pg_addr:%lx pud:%x->pmd:%lx,pmd:%lx->pte:%lx pte:%lx->pte val:%lx\n",__FUNCTION__,ni->i_pg_addr,pud,*pud,pmd,*pmd,pte,*pte);
     return 0;
 }
 
@@ -292,12 +294,13 @@ int rdfs_establish_mapping(struct inode *inode)
 	if(!vaddr){
 		if((S_ISDIR(inode->i_mode)) || (S_ISLNK(inode->i_mode))) 
 		{
-			printk("%s is here i_mode:%lx\n",__FUNCTION__,inode->i_mode);
+			printk("%s i_mode is dir\n",__FUNCTION__);
 			mode = 1;
 			ni_info->i_virt_addr = nvmalloc(mode);
 		}
 		else if(S_ISREG(inode->i_mode))
 		{
+            printk("%s i_mode is reg file\n",__FUNCTION__);
 			mode = 0;
 			ni_info->i_virt_addr = nvmalloc(mode);				
 		    p_address=rdfs_address_to_ino(sb,(unsigned long)ni_info->i_virt_addr);

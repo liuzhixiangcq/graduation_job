@@ -18,6 +18,7 @@
 #include "debug.h"
 #include "pgtable.h"
 #include "inode.h"
+#include "memory.h"
 static unsigned char rdfs_filetype_table[RDFS_FT_MAX] = 
 {
 	[RDFS_FT_UNKNOWN]		= DT_UNKNOWN,
@@ -95,7 +96,7 @@ static int rdfs_readdir(struct file *file, struct dir_context *ctx)
 	nde = (struct rdfs_dir_entry *)start_addr;
 	for(;(char *)nde < end_addr;nde =  rdfs_next_entry(nde)){
 		if(nde->rec_len == 0){
-			rdfs_error(sb, __FUNCTION__, "zero-length directory entry\n");
+			//rdfs_error(sb, __FUNCTION__, "zero-length directory entry\n");
 			err = -EIO;
 			goto final;
 		}
@@ -138,7 +139,7 @@ struct rdfs_dir_entry *rdfs_find_entry2(struct inode *dir, struct qstr *child, s
 	while((void *)nde < end)
 	{
 		if(unlikely(nde->rec_len == 0)){
-			rdfs_error(dir->i_sb,__FUNCTION__,"zero-length directory entry\n");
+			//rdfs_error(dir->i_sb,__FUNCTION__,"zero-length directory entry\n");
 			goto out;
 		}
 		if(rdfs_match(namelen, name, nde))
@@ -233,7 +234,7 @@ int rdfs_add_link(struct dentry *dentry,struct inode *inode)
             }
             if(unlikely(de->rec_len == 0))
             {
-                rdfs_error(dir->i_sb,__func__,"zero_length directory entry");
+                //rdfs_error(dir->i_sb,__func__,"zero_length directory entry");
                 err = -EIO;
                 goto out;
             }
@@ -256,11 +257,11 @@ int rdfs_add_link(struct dentry *dentry,struct inode *inode)
 need_new_block:
 	if(dir->i_size + PAGE_SIZE <= MAX_DIR_SIZE)
     {
-		err = rdfs_alloc_blocks(dir, 1, 0);
+		err = rdfs_alloc_blocks(dir, 1, 0,ALLOC_PAGE);
 		i_size_write(dir, dir->i_size + PAGE_SIZE);
 		if(unlikely(err))
         {
-			rdfs_error(dir->i_sb, __FUNCTION__, "alloc new block failed!\n");
+			//rdfs_error(dir->i_sb, __FUNCTION__, "alloc new block failed!\n");
 			return err;
 		}
 	}
@@ -306,7 +307,7 @@ int rdfs_delete_entry(struct rdfs_dir_entry *dir,struct rdfs_dir_entry **pdir,st
     prev = *pdir;
     if(unlikely(dir->rec_len == 0))
     {
-        rdfs_error(parent->i_sb,__func__,"zero_length directory entry");
+        //rdfs_error(parent->i_sb,__func__,"zero_length directory entry");
         err = -EIO;
         goto out;
     }
@@ -336,17 +337,17 @@ int rdfs_make_empty(struct inode *inode,struct inode *parent)
 	printk("%s -->1\n",__FUNCTION__);
 	if(unlikely(err))
     {
-		rdfs_error(inode->i_sb, __FUNCTION__, "establish mapping!\n");
+		//rdfs_error(inode->i_sb, __FUNCTION__, "establish mapping!\n");
 		return err;
 	}
 	printk("%s -->2\n",__FUNCTION__);
 	if(inode->i_size == 0)
     {
-		err = rdfs_alloc_blocks(inode, 1, 0);
+		err = rdfs_alloc_blocks(inode, 1, 0,ALLOC_PAGE);
 		i_size_write(inode, PAGE_SIZE);
 		if(unlikely(err))
         {
-			rdfs_error(inode->i_sb, __FUNCTION__, "alloc new block failed!\n");
+			//rdfs_error(inode->i_sb, __FUNCTION__, "alloc new block failed!\n");
 			return err;
 	    }
 	}
@@ -420,8 +421,8 @@ int rdfs_empty_dir(struct inode *inode)
 
     while((void *)de <= vaddr){
         if(unlikely(de->rec_len == 0)){
-            rdfs_error(inode->i_sb,__func__,
-                       "zero_length directory entry");
+            //rdfs_error(inode->i_sb,__func__,
+              //         "zero_length directory entry");
             printk("vaddr=%p,de=%p\n",vaddr,de);
             goto not_empty;
         }

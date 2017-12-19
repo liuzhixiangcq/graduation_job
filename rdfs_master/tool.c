@@ -212,15 +212,7 @@ loff_t rdfs_max_size(int bits)
 }
 
 
-int rdfs_swap_buffer_free(struct rdfs_inode_info *ni_info)
-{
-	rdfs_trace();
-	struct swap_buffer* buffer=&ni_info->swap_buffer;
-	vfree(buffer->pte);
-	vfree(buffer->sn_num);
-	vfree(buffer->accessed_count);
-	return 0;
-}
+
 phys_addr_t get_phys_addr(void **data)
 {
 	rdfs_trace();
@@ -297,7 +289,7 @@ int rdfs_ioremap(struct super_block *sb, unsigned long size)
 	}
 	rdfs_init();
 
-	u64 dma_addr = rdfs_mapping_address(__va(sbi->phy_addr),size,0);
+	u64 dma_addr = rdfs_mapping_address(__va(sbi->phy_addr),size);
 	printk("%s dma_addr:%lx phy_addr:%lx\n",__FUNCTION__,dma_addr,sbi->phy_addr);
 	return 1;
 }
@@ -309,7 +301,7 @@ void rdfs_i_callback(struct rcu_head *head)
 	rdfs_trace();
 	struct inode *inode = container_of(head,struct inode,i_rcu);
 	struct rdfs_inode_info* ni_info = RDFS_I(inode);
-	rdfs_swap_buffer_free(ni_info);
+	//rdfs_swap_buffer_free(ni_info);
 	kmem_cache_free(rdfs_inode_cachep,ni_info);
 }
 void init_once(void *foo)

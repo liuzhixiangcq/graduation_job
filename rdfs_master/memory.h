@@ -38,23 +38,19 @@
 
   #define SLAVE_ID_SHIFT 51
   #define SLAVE_ID_MASK  0x000fffffffffffff
-  struct mem_block
-  {
-    int block_id;
-    struct mem_block *next;
-  };
+
   struct slave_info
   {
      struct rdfs_context * ctx;
      struct ib_device * dev ;
      int slave_id;
-     int slave_status;
+     int status;
 
      int free_block_nums;
-     int toal_block_nums;
+     int total_block_nums;
      
-     spin_lock_t slave_free_list_lock;
-     struct mem_block * head;
+     spinlock_t slave_free_list_lock;
+     //struct mem_block * head;
      struct mem_bitmap_block *bitmap_head;
      struct socket *slave_sock;
   };
@@ -63,7 +59,7 @@
         unsigned long pte_start_addr;
         int free_pte_nums;
         int total_page_nums;
-        spin_lock_t pte_lock;
+        spinlock_t pte_lock;
         int start_addr;
   };
   struct mem_bitmap_block
@@ -78,6 +74,9 @@
     unsigned long pre_start_block_id;
     int pre_alloc_slave_id;
     int pre_index;
-    spin_lock_t bitmap_lock;
+    spinlock_t bitmap_lock;
   };
+  int rdfs_new_pte(struct rdfs_inode_info * ri_info,unsigned long *phyaddr);
+  int rdfs_init_slave_memory_bitmap_list(struct slave_info *s);
+  int rdfs_free_slave_memory_bitmap_list(struct slave_info *s);
  #endif

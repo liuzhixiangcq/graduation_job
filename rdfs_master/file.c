@@ -21,23 +21,62 @@
 #include "xattr.h"
 #include "inode.h"
 #include "pgtable.h"
+#include "rdfs_config.h"
 #define CLEAN 1
 #define NO_CLEAN 0
 #define LOCK 1
 #define NO_LOCK 0
 #define iov_iter_rw(i)((0 ? (struct iov_iter*)0: (i))->type & RW_MASK)
 
+char * local_rw_buffer;
+unsigned long local_rw_addr;
+int flag = 0;
 
+int rdfs_init_local_rw_buffer(void)
+{
+	if(flag)
+		return 0;
+	flag = 1;
+	local_rw_buffer = (char*)kmalloc(RDFS_BLOCK_SIZE,GFP_KERNEL);
+	local_rw_addr = rdfs_mapping_address(local_rw_buffer,RDFS_BLOCK_SIZE);
+	return 0;
+}
+int rdfs_destroy_local_rw_buffer(void)
+{
+	if(!flag)
+		return 0;
+	flag = 0;
+	kfree(local_rw_buffer);
+	return 0;
+}
+extern void print_pgtable(struct mm_struct* mm,unsigned long address);
 static int rdfs_open_file(struct inode *inode, struct file *filp)
 {
 	rdfs_trace();
 	int errval = 0;
 	errval = rdfs_establish_mapping(inode);
 	struct rdfs_inode* nv_i = get_rdfs_inode(inode->i_sb,inode->i_ino);
+	printk("%s ino:%lx\n",__FUNCTION__,inode->i_ino);
+	struct rdfs_inode_info * ri_info = RDFS_I(inode);
+	printk("%s ri_info->i_virt_addr:%lx\n",__FUNCTION__,ri_info->i_virt_addr);
+	unsigned long address = (unsigned long)ri_info->i_virt_addr;
+	extern struct mm_struct init_mm;
+	print_pgtable(&init_mm,address);
 	filp->f_flags |= O_DIRECT;
+	rdfs_init_local_rw_buffer();
 	if(S_ISREG(inode->i_mode))
 		atomic_inc(&(RDFS_I(inode)->i_p_counter));
-	return generic_file_open(inode, filp);
+	if(!(filp->f_flags & O_LARGEFILE))
+	{
+		printk("%s flag error\n",__FUNCTION__);
+	}
+	if(i_size_read(inode) > MAX_NON_LFS)
+	{
+		printk("%s inode size :%lx eror\n",__FUNCTION__,i_size_read(inode));
+	}
+	printk("%s open end\n",__FUNCTION__);
+	return 0;
+	//return generic_file_open(inode, filp);
 }
 
 
@@ -49,6 +88,7 @@ static int rdfs_release_file(struct file * file)
 	unsigned long vaddr;
 	int err = 0;
 	struct rdfs_inode* ni = get_rdfs_inode(inode->i_sb,inode->i_ino);
+	rdfs_destroy_local_rw_buffer();
 	vaddr = (unsigned long)ni_info->i_virt_addr;
 	if(vaddr)
 	{
@@ -59,30 +99,42 @@ static int rdfs_release_file(struct file * file)
 	}
 	return err;
 }
-
-char * local_rw_buffer;
-unsigned long local_rw_addr;
-
-static int rdfs_init_local_rw_buffer()
+ssize_t rdfs_direct_IO(struct kiocb *iocb,struct iov_iter *iter,loff_t offset)
 {
-	local_rw_buffer = (char*)kmalloc(RDFS_BLOCK_SIZE,GFP_KERNEL);
-	local_rw_addr = rdfs_mapping_address(local_rw_buffer,RDFS_BLOCK_SIZE,0);
-	return 0;
+	rdfs_trace();
+	struct file *file=iocb->ki_filp;
+	struct inode*inode=file->f_mapping->host;
+	struct super_block*sb=inode->i_sb;
+	ssize_t retval=0;
+	int hole=0;
+	loff_t size;
+	void* start_addr = RDFS_I(inode)->i_virt_addr+offset;
+	size_t length=iov_iter_count(iter);
+	unsigned long pages_exist=0,pages_to_alloc=0,pages_need=0;
+	size=i_size_read(inode);	
+	return iov_iter_count(iter);
 }
-static int rdfs_destroy_local_rw_buffer()
-{
-	kfree(local_rw_buffer);
-	return 0;
-}
+EXPORT_SYMBOL(rdfs_direct_IO);
 ssize_t rdfs_local_file_read(struct file *filp,char __user *buf,size_t length,loff_t *ppos)
 {
 	rdfs_trace();
 	struct address_space *mapping = filp->f_mapping;
 	struct inode * inode = mapping->host;
+	struct super_block *sb = inode->i_sb;
 	struct rdfs_inode * ri = get_rdfs_inode(inode->i_sb,inode->i_ino);
 	struct rdfs_inode_info * ri_info = RDFS_I(inode);
 	size_t retval = 0,copied = 0;
-
+	loff_t i_size = 0;
+	if(i_size <= 0)
+	{
+		return length;
+	}
+	if(*ppos+length>i_size)
+		length = i_size - *ppos;
+	if(length <= 0)
+	{
+		return length;
+	}
 	unsigned long offset = *ppos;
 	unsigned long start = offset,end = offset + length;
 	unsigned long i = 0,pte = 0,block_offset = 0;
@@ -98,6 +150,7 @@ ssize_t rdfs_local_file_read(struct file *filp,char __user *buf,size_t length,lo
 		retval = rdfs_rdma_block_rw(local_rw_addr,s_id,block_id,block_offset,RDFS_READ);
 		copied += __copy_to_user(buf+copied,local_rw_buffer,size);
 	}
+	*ppos = *ppos + length;
 	return length - copied;
 }
 
@@ -106,17 +159,19 @@ ssize_t rdfs_local_file_write(struct file *filp,const char __user *buf,size_t le
 	rdfs_trace();
 	struct address_space *mapping = filp->f_mapping;
 	struct inode * inode = mapping->host;
+	struct super_block *sb = inode->i_sb;
 	struct rdfs_inode * ri = get_rdfs_inode(inode->i_sb,inode->i_ino);
 	struct rdfs_inode_info * ri_info = RDFS_I(inode);
 	size_t retval = 0;
-
+	loff_t i_size=0;
+	i_size = i_size_read(inode);
 	long pages_exist = 0,pages_to_alloc = 0,pages_needed = 0;
 	pages_needed = (*ppos + length + sb->s_blocksize -1) >> sb->s_blocksize_bits;
-	pages_exist = (size + sb->s_blocksize - 1) >> sb->s_blocksize_bits;
+	pages_exist = (i_size + sb->s_blocksize - 1) >> sb->s_blocksize_bits;
 	pages_to_alloc = pages_needed - pages_exist;
 	if(pages_to_alloc > 0)
 	{
-		retval = rdfs_alloc_blocks(inode,pages_to_alloc,1,ALLOC_PAGE);
+		retval = rdfs_alloc_blocks(inode,pages_to_alloc,1,ALLOC_PTE);
 		if(retval < 0)
 		{
 			printk("%s --> rdfs_alloc_blocks failed\n",__FUNCTION__);
@@ -138,6 +193,11 @@ ssize_t rdfs_local_file_write(struct file *filp,const char __user *buf,size_t le
 		retval = rdfs_search_metadata(ri_info,pte,&s_id,&block_id);
 		copied += rdfs_rdma_block_rw(local_rw_addr,s_id,block_id,block_offset,RDFS_WRITE);
 	}
+	if(*ppos + length > i_size)
+	{	
+		i_size_write(inode, *ppos + length);
+	}
+	*ppos = *ppos + length;
 	return length - copied;
 }
 static int rdfs_check_flags(int flags)

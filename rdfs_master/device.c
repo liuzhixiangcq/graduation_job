@@ -23,6 +23,9 @@
  #include "balloc.h"
  #include "rdfs_config.h"
  #include "master_service.h"
+
+ struct ib_event_handler ieh;
+ struct ib_device * global_ib_dev;
  static void rdfs_add_device(struct ib_device* dev)
  {
      rdfs_trace();
@@ -31,20 +34,21 @@
      int slave_register_port = SLAVE_REGISTER_PORT;
      int client_request_port = CLIENT_REQUEST_PORT;
 
+     global_ib_dev = dev;
      INIT_IB_EVENT_HANDLER(&ieh,dev,async_event_handler);
      ib_register_event_handler(&ieh);
 
      retval = rdfs_init_slave_register_service(master_ip,slave_register_port,dev);
      if(retval)
      {
-         rdfs_debug_msg(__FUNCTION__,"rdfs_init_slave_register_service failed");
+         //rdfs_debug_msg(__FUNCTION__,"rdfs_init_slave_register_service failed");
          return;
      }
      
      retval = rdfs_init_client_request_service(master_ip,client_request_port,dev);
      if(retval)
      {
-         rdfs_debug_msg(__FUNCTION__,"rdfs_init_client_request_service failed");
+         //rdfs_debug_msg(__FUNCTION__,"rdfs_init_client_request_service failed");
          return;
      }
      return ;

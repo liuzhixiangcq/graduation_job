@@ -15,10 +15,8 @@
  #include <linux/inet.h>
  #include <rdma/ib_verbs.h>
  #include <rdma/rdma_cm.h>
- #include "init.h"
- #include "ctx.h"
- #include "sock.h"
- 
+ #include "network.h"
+ #include "server.h"
  static int recv_data(struct socket * client_sock,char* data,int size)
  {
      struct msghdr msg;
@@ -64,9 +62,9 @@
      int size;
      memset(message.m_data,0,MAX_MESSAGE_LENGTH);
      message.m_type = MASTER_CTX_INFO;
-     sprintf(message.m_data,"%016Lx:%u:%x:%x:%lx:%lx",ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,ctx_p->psn,ctx_p->lid,ctx_p->block_nums);
+     sprintf(message.m_data,"%016Lx:%u:%x:%x:%lx:%lx",ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,ctx_p->psn,ctx_p->lid,ctx_p->rem_block_nums);
      size = send_data(sock,&message,sizeof(message)); 
-     printk("%s --> send_data: %016Lx:%u:%x:%x:%x:%x",__FUNCTION__,ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,ctx_p->psn,ctx_p->lid,ctx_p->block_nums);
+     printk("%s --> send_data: %016Lx:%u:%x:%x:%x:%x",__FUNCTION__,ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,ctx_p->psn,ctx_p->lid,ctx_p->rem_block_nums);
      return size;
  }
  int rdfs_sock_get_info(struct socket * sock,struct rdfs_context* ctx_p)
@@ -94,7 +92,7 @@
             break;
         case SLAVE_CTX_TO_MASTER_INFO:
              sprintf(message.m_data,"%016Lx:%u:%x:%x:%lx:%lx",ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,
-             ctx_p->psn,ctx_p->lid,ctx_p->block_nums);
+             ctx_p->psn,ctx_p->lid,ctx_p->rem_block_nums);
         case SLAVE_CTX_TO_CLIENT_INFO:
              sprintf(message.m_data,"%016Lx:%u:%x:%x:%x",ctx_p->dma_addr,ctx_p->rkey,
              ctx_p->qpn,ctx_p->psn,ctx_p->lid);

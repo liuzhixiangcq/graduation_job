@@ -15,7 +15,7 @@
 #include "init.h"
 #include "event.h"
 #include "rdfs.h"
-#include "sock.h"
+#include "rdfs_sock.h"
 #include "memory.h"
 
 MODULE_LICENSE("GPL");

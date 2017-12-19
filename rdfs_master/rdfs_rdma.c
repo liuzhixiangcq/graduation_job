@@ -2,14 +2,36 @@
  * @date 2017/12/6
  * rdfs_master/rdfs_rdma.c
  */
-
+ #include <linux/kernel.h>
+ #include <linux/init.h>
+ #include <linux/kthread.h>
+ #include <linux/un.h>
+ #include <linux/net.h>
+ #include <net/sock.h>
+ #include <linux/socket.h>
+ #include <linux/module.h>
+ #include <linux/delay.h>
+ #include <linux/in.h>
+ #include <linux/inet.h>
+ #include <rdma/ib_verbs.h>
+ #include <rdma/rdma_cm.h>
+ #include <linux/time.h>
+ #include "server.h"
+ #include "rdfs.h"
+ #include "debug.h"
+ #include "inode.h"
+ #include "balloc.h"
+ #include "network.h"
+ #include "rdfs_config.h"
+ #include "rdfs_rdma.h"
  int rdfs_remove_context(struct rdfs_context * ctx_p,struct ib_device *dev)
  {
+     /*
     if(ctx_p->qp)
     {
         ib_destry_qp(ctx_p->qp);
     }
-    /*
+    
     if(ctx_p->recv_cq)
     {
 
@@ -72,13 +94,14 @@
      ctx_p->qp = ib_create_qp(ctx_p->pd,&ctx_p->qp_attr);
      if(rdfs_check_pointer(ctx_p->qp))return NULL;
 
-     ib_query_port(dev,INFINIBAND_DEV_PORT,&host_info.ib_port_attr);
+     struct ib_port_attr port_attr;
+     ib_query_port(dev,INFINIBAND_DEV_PORT,&port_attr);
      ctx_p->rkey = ctx_p->mr->rkey;
-     ctx_p->lid = host_info.ib_port_attr.lid;
+     ctx_p->lid = port_attr.lid;
      ctx_p->qpn = ctx_p->qp->qp_num;
      get_random_bytes(&ctx_p->psn,sizeof(ctx_p->psn));
      ctx_p->psn &= 0xffffff;
-     ctx_p->active_mtu = host_info.ib_port_attr.active_mtu;
+     ctx_p->active_mtu = port_attr.active_mtu;
 
      ib_query_gid(dev,INFINIBAND_DEV_PORT,0,&ctx_p->gid);
 

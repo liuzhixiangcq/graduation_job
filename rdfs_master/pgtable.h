@@ -27,4 +27,5 @@
  void rdfs_rm_pmd_range(struct super_block *sb,struct rdfs_inode* nv_i, pud_t *pud);
  int rdfs_establish_mapping(struct inode *inode);
  int rdfs_destroy_mapping(struct inode *inode);
+ int rdfs_search_metadata(struct rdfs_inode_info * ri_info,unsigned long offset,unsigned long *s_id,unsigned long *block_id);
  #endif

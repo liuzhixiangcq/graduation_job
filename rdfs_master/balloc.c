@@ -24,7 +24,7 @@
 #include "rdfs.h"
 #include "debug.h"
 #include "pgtable.h"
-#include "rdfs_swap.h"
+
 #include "balloc.h"
 #define TRYTIME (1000000)
 
@@ -98,18 +98,10 @@ int rdfs_new_block(phys_addr_t *physaddr,int num,struct rdfs_inode* ni)
 		numa_des_p = rdfs_get_numa_by_inode(ni);
 	}
 
-	while(THRESHOLD>numa_des_p->free_page_count)
+	if(numa_des_p->free_page_count < num)
 	{	
-		printk("%d\n",numa_des_p->free_page_count);
-		printk("%s\n",__FUNCTION__);
-		rdfs_swap(numa_des_p,ni,PER_SWAP_COUNT);
-		printk("%d\n\n",numa_des_p->free_page_count);
-		++try_time;
-		if (try_time == TRYTIME)
-		{
-			printk("no rdfs space or fs busy\n");
-			goto fail;
-		}
+		printk("%s -- not enough memory \n",__FUNCTION__);
+		return -1;
 	}
 	spin_lock(&numa_des_p->free_list_lock);
 	if(unlikely(numa_des_p->free_page_count<num))
@@ -422,6 +414,7 @@ void* rdfs_get_zeroed_page()
 		virt_addr = rdfs_va(physaddr);
    		memset(virt_addr , 0x00, PAGE_SIZE);
 	}
+	printk("%s phy_addr:%lx virt_addr:%lx\n",__FUNCTION__,physaddr,virt_addr);
 	return virt_addr;
 }
 

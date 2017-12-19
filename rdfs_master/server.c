@@ -17,23 +17,16 @@
 #include "debug.h"
 #include "inode.h"
 #include "balloc.h"
-struct rdma_host_info host_info;
-struct rdfs_context ctx[MAX_CLIENT_NUMS];
-struct ib_event_handler ieh;
-int ctx_cnt = 0;
-int is_modify = 0;
-int posted_req_cnt = 0;
-extern int current_client;
+#include "rdfs_config.h"
+
+
 #define OPEN_MODE 0 
 #define READ_MODE 1
 #define WRITE_MODE 2
 #define CLOSE_MODE 4
 #define OVER_MODE 3
 
-extern char __user *current_buf;
-extern unsigned long current_length;
-extern unsigned long dma_start_addr;
-struct task_struct *tsk;
+extern struct rdfs_context * slave_ctx[MAX_SLAVE_NUMS];
 
 void async_event_handler(struct ib_event_handler* ieh,struct ib_event* ie)
 {
@@ -53,7 +46,7 @@ void comp_handler_send(struct ib_cq* cq,void *cq_context)
                 req_word = wc.wr_id;
                 s_id = req_word >> SLAVE_ID_SHIFT;
                 req_id = req_word & SLAVE_ID_MASK;
-                clear_bit_unlock(req_id,slave_ctx[s_id]->)
+                clear_bit_unlock(req_id,slave_ctx[s_id]->req_id.lock_word);
             }
             else
             {
@@ -76,136 +69,6 @@ void cq_event_handler_recv(struct ib_event* ib_e,void * cq_context)
     rdfs_trace();
 }
 
-
-int rdfs_sock_client_exchange_data(struct socket *accept_sock,int ctx_idx)
-{
-    rdfs_trace();
-
-    struct timeval s1,s2,e1,e2,e3,e4;
-    do_gettimeofday(&s1);
-
-    printk("%s  wait to recv data   ctx_idx = %d \n",__FUNCTION__,ctx_idx);
-    int retval;
-    unsigned long ino = 0;
-    unsigned long mode = 5;
-    unsigned long offset = 0;
-    unsigned long length = 0;
-    char sdata[MAX_SOCK_BUFFER];
-    char rdata[MAX_SOCK_BUFFER];
-    char path[100];
-    memset(rdata,0,MAX_SOCK_BUFFER);
-    //printk("ready to recv data\n");
-    printk("start recv ...\n");
-    recv_data1(accept_sock,rdata,MAX_SOCK_BUFFER); 
-    printk("ctx_idx = %d   rdata :%s\n",ctx_idx, rdata);
-
-    sscanf(rdata,"%ld:%016Lx:%u:%x:%x:%x:%ld:%ld:%ld:%s",&mode,&ctx[ctx_idx].rem_addr,&ctx[ctx_idx].rem_rkey,&ctx[ctx_idx].rem_qpn,&ctx[ctx_idx].rem_psn,&ctx[ctx_idx].rem_lid,&ino,&offset,&length,path);
-
-    do_gettimeofday(&s1);
-
-    if(mode == OVER_MODE || mode == 5)
-    {
-	    return -1;
-    }
-    if(mode == CLOSE_MODE)
-    {
-
-	    struct super_block* sb = RDFS_SUPER_BLOCK_ADDRESS;
-	    struct inode* inode = rdfs_iget(sb, ino);
-	    i_size_write(inode, length);
-	    return 0;
-    }
-
-    if(mode == OPEN_MODE)
-    {	
-	    printk("mode = %ld  open\n",mode);
-	    printk("path : %s\n",path);
-
-	    char nodata[100] = "aaa" ;
-	    ino = path_to_inode(path);
-
-	    unsigned long i_size = 0;
-	    if(ino != 0)
-	    {
-		    struct super_block* sb = RDFS_SUPER_BLOCK_ADDRESS;
-		    struct inode* inode = rdfs_iget(sb, ino);
-		    i_size = i_size_read(inode);
-		    printk("i_size = %ld\n",i_size);
-	    }
-
-    	memset(sdata,0,MAX_SOCK_BUFFER);
-	    sprintf(sdata,"%016Lx:%u:%x:%x:%x:%x:%ld:%s",ctx[ctx_idx].dma_addr,ctx[ctx_idx].rkey,ctx[ctx_idx].qpn,ctx[ctx_idx].psn,ctx[ctx_idx].lid,ino,i_size,nodata);
-    	
-    	send_data1(accept_sock,sdata,MAX_SOCK_BUFFER);
-	
-
-	    do_gettimeofday(&e1);
-	
-    	return 0;
-    }
-    else
-    {
-	    if(ino == 0)
-        {
-		    printk("ino = 0 !  please check\n");
-		    return 0;
-        }
-	struct super_block* sb = RDFS_SUPER_BLOCK_ADDRESS;
-	struct inode *inode = rdfs_iget(sb,ino);
-	struct rdfs_inode_info *ni_info = RDFS_I(inode);
-	struct rdfs_inode* ni = get_rdfs_inode(sb,ino);
-
-	do_gettimeofday(&s2);
-
-	if(mode == WRITE_MODE)
-	{
-		long pages_exist = 0, pages_to_alloc = 0,pages_needed = 0; 
-		loff_t size = ni_info->file_size;
-		pages_needed = ((offset + length + sb->s_blocksize - 1) >> sb->s_blocksize_bits);
-	    pages_exist = (size + sb->s_blocksize - 1) >> sb->s_blocksize_bits;
-	    pages_to_alloc = pages_needed - pages_exist;
-
-		if(pages_to_alloc > 0)
-		{
-			size_t retval = dmfs_new_block(ni_info,pages_to_alloc * FK_SIZE);
-            if (retval < 0)
-            {
-				rdfs_info("alloc blocks failed!\n");
-			}
-			size = i_size_read(inode);
-			printk("vfs inode->i_size : %ld\n",size);
-		}
-	}
-
-	do_gettimeofday(&e2);
-
-	struct index_search_result *result = kmalloc(sizeof(struct index_search_result) * MAX_BLOCK_NUM,GFP_KERNEL);
-
-	unsigned long num = dmfs_index_search(ni_info,offset,length,result);
-
-	do_gettimeofday(&e3);
-	char sdata1[MAX_SOCK_BUFFER];
-    memset(sdata1,0,MAX_SOCK_BUFFER);
-
-	char index_data[MAX_SOCK_BUFFER];
-	memset(index_data,0,MAX_SOCK_BUFFER);
-    unsigned long len = 0;
-    int i;
-	for(i = 0;i<num;i++)
-	{
-		len = strlen(index_data);
-		//printk("len = %ld\n",len);
-		sprintf(index_data + len, "%ld:%ld:%ld:%ld:%ld:",result[i].slave_id, result[i].start_addr, result[i].size, result[i].block_type, result[i].file_offset);
-	}
-
-	sprintf(sdata1,"%016Lx:%u:%x:%x:%x:%x:%ld:%s",ctx[ctx_idx].dma_addr,ctx[ctx_idx].rkey,ctx[ctx_idx].qpn,ctx[ctx_idx].psn,ctx[ctx_idx].lid,ino,num,index_data);
-
-    send_data1(accept_sock,sdata1,MAX_SOCK_BUFFER);
-	do_gettimeofday(&e4);
-	return 0;
-    }
-    return 0;
-}
 
 int rdfs_modify_qp(int s_id)
 {
@@ -246,15 +109,16 @@ int rdfs_modify_qp(int s_id)
 
     return 0;
 }
-u64 rdfs_mapping_address(char * vir_addr,int size,int s_id)
+u64 rdfs_mapping_address(char * vir_addr,int size)
 {
     rdfs_trace();
     u64 dma_addr;
-    dma_addr = ib_dma_map_single(slave_ctx[s_id]->ib_dev,vir_addr,size,DMA_BIDIRECTIONAL);
+    extern struct ib_device * global_ib_dev;
+    dma_addr = ib_dma_map_single(global_ib_dev,vir_addr,size,DMA_BIDIRECTIONAL);
     return dma_addr;
 }
 
-unsigned long rdfs_dma_block_rw(unsigned long local_phy_addr,unsigned long s_id,unsigned long block_id,unsigned long block_offset,int rw_flag)
+unsigned long rdfs_rdma_block_rw(unsigned long local_phy_addr,unsigned long s_id,unsigned long block_id,unsigned long block_offset,int rw_flag)
 {
     rdfs_trace();
     struct ib_send_wr wr;
@@ -266,7 +130,7 @@ unsigned long rdfs_dma_block_rw(unsigned long local_phy_addr,unsigned long s_id,
     
     memset(&sg,0,sizeof(sg));
     sg.addr = (uintptr_t)local_phy_addr;
-    sg.length = req->size;
+    sg.length = size - block_offset;
     sg.lkey = slave_ctx[s_id]->mr->lkey;
 
 
@@ -292,7 +156,7 @@ unsigned long rdfs_dma_block_rw(unsigned long local_phy_addr,unsigned long s_id,
         return -1;
     }
     wait_on_bit_lock(&slave_ctx[s_id]->req_id.lock_word,req_id,TASK_KILLABLE);
-    return 0;
+    return size - block_offset;
 }
 
 

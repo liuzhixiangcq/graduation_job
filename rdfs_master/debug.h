@@ -31,4 +31,5 @@ extern void rdfs_error(struct super_block * sb, const char * function,
 
 extern void rdfs_msg(struct super_block * sb, const char * prefix,
             const char * fmt, ...);
+            int rdfs_check_pointer(void *p);
 #endif

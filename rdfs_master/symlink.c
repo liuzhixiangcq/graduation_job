@@ -8,13 +8,14 @@
 #include "xattr.h"
 #include "inode.h"
 #include "pgtable.h"
+#include "memory.h"
 int rdfs_page_symlink(struct inode *inode, const char *symname, int len)
 {
 	rdfs_trace();
     struct rdfs_inode_info *ni_info;
     char *vaddr;
     int err;
-    err = rdfs_alloc_blocks(inode, 1, 0);
+    err = rdfs_alloc_blocks(inode, 1, 0,ALLOC_PAGE);
     if(err)
         return err;
     ni_info = RDFS_I(inode);

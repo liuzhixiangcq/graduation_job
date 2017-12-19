@@ -12,7 +12,7 @@
 #include <linux/rwlock.h>
 
 #include "rdfs.h"
-
+/*
 void rdfs_error(struct super_block * sb, const char * function,
     const char * fmt, ...)
 {
@@ -44,6 +44,7 @@ vprintk(fmt, args);
 printk("\n");
 va_end(args);
 }
+*/
 int rdfs_check_pointer(void *p)
 {
     if(p == NULL)

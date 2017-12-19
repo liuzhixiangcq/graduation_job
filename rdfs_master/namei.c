@@ -56,9 +56,9 @@ static struct dentry *rdfs_lookup(struct inode *dir,struct dentry *dentry,unsign
     if(likely(ino)){
         inode = rdfs_iget(dir->i_sb,ino);
         if(unlikely(inode == ERR_PTR(-ESTALE))){
-            rdfs_error(dir->i_sb,__func__,
-                       "deleted inode referenced:%u",
-                       (unsigned long)ino);
+            //rdfs_error(dir->i_sb,__func__,
+            //           "deleted inode referenced:%u",
+             //          (unsigned long)ino);
             return ERR_PTR(-EIO);
         }
     }

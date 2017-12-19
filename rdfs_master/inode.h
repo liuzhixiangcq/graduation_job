@@ -22,7 +22,7 @@
 
 u64 rdfs_find_data_block(struct inode *inode, unsigned long file_blocknr);
 void rdfs_truncate_blocks(struct inode *inode, loff_t start, loff_t end);
-int rdfs_alloc_blocks(struct inode *inode, int num, int zero);
+int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type);
 int rdfs_update_inode(struct inode *inode);
 void rdfs_set_inode_flags(struct inode *inode);
 void get_rdfs_inode_flags(struct rdfs_inode_info *ei);

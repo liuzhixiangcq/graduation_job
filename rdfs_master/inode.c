@@ -24,7 +24,7 @@
  #include "balloc.h"
  #include "tool.h"
  #include "wprotect.h"
- #include "rdfs_swap.h"
+
  #include "memory.h"
 static DEFINE_SPINLOCK(read_inode_lock);
 static DEFINE_SPINLOCK(update_inode_lock);
@@ -45,7 +45,7 @@ const struct address_space_operations rdfs_aops_xip =
 const struct address_space_operations rdfs_aops = 
 {
 	.readpage	= rdfs_readpage,
-	.direct_IO	= rdfs_direct_IO,
+	//.direct_IO	= rdfs_direct_IO,
 };
 
 u64 rdfs_find_data_block(struct inode *inode, unsigned long file_blocknr)
@@ -176,7 +176,7 @@ int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type)
 			}
 			else
 			{
-				rdfs_new_pte(temp);
+				rdfs_new_pte(ni_info,temp);
 			}
             
 	           
@@ -191,7 +191,7 @@ int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type)
         }
         return errval;
     }else{
-        rdfs_error(sb, __FUNCTION__, "no block space left!\n");
+        //rdfs_error(sb, __FUNCTION__, "no block space left!\n");
         return -ENOSPC;
     }
 }
@@ -209,7 +209,7 @@ static int rdfs_read_inode(struct inode *inode, struct rdfs_inode *ni)
 	ni_info = RDFS_I(inode);
 	spin_lock(&read_inode_lock);
 	 if (rdfs_calc_checksum((u8 *)ni, RDFS_INODE_SIZE)) { 
-	 	rdfs_error(inode->i_sb, (char *)rdfs_read_inode, (char *)"checksum error in inode %08x\n",  (u32)inode->i_ino); 
+	 	//rdfs_error(inode->i_sb, (char *)rdfs_read_inode, (char *)"checksum error in inode %08x\n",  (u32)inode->i_ino); 
 	 	goto bad_inode;
 	 }
 
@@ -323,7 +323,7 @@ void rdfs_free_inode(struct inode *inode)
 	spin_lock(&numa_des->inode_lock);
 	inode_phy = get_rdfs_inode_phy_addr(sb, inode->i_ino);
 	if(inode_phy == -BADINO)
-		rdfs_error(sb, __FUNCTION__, (char *)-BADINO);
+		//rdfs_error(sb, __FUNCTION__, (char *)-BADINO);
 	
 	rdfs_memunlock_inode(sb, ni);
 
@@ -425,7 +425,7 @@ static void rdfs_inode_info_init(struct rdfs_inode_info* ni_info)
 		ni_info->post=0;
 		ni_info->mapping_count=0;
 		ni_info->per_read=PER_READ;
-		rdfs_swap_buffer_init(&ni_info->swap_buffer);		
+		//rdfs_swap_buffer_init(&ni_info->swap_buffer);		
 		mutex_init(&ni_info->truncate_mutex);
 		mutex_init(&ni_info->i_meta_mutex);
 		rwlock_init(&ni_info->state_rwlock);
@@ -474,7 +474,7 @@ struct inode *rdfs_new_inode(struct inode *dir, umode_t mode, const struct qstr 
 		//lcl
 		ni->i_cold_page_start=0;
 		ni->i_cold_page_num=0;
-		dmfs_index_init(ni_info);
+		//dmfs_index_init(ni_info);
 		
 		rdfs_memunlock_super(sb, ns);
 		--numa_des->free_inode_count;
@@ -493,7 +493,7 @@ struct inode *rdfs_new_inode(struct inode *dir, umode_t mode, const struct qstr 
 	}
 
 	inode->i_ino = ino;
-
+	printk("%s ino:%lx\n",__FUNCTION__,ino);
 	inode_init_owner(inode, dir, mode);
 
 	inode->i_blocks = inode->i_size = 0;
@@ -701,20 +701,20 @@ int rdfs_notify_change(struct dentry *dentry, struct iattr *attr)
 	struct rdfs_inode *ni = get_rdfs_inode(inode->i_sb,inode->i_ino);
 	int error = 0;
 	if(!ni){
-		rdfs_error(inode->i_sb, __FUNCTION__, "inode don't exist\n");
+		//rdfs_error(inode->i_sb, __FUNCTION__, "inode don't exist\n");
 		return -EACCES;
 	}
 
 	error = inode_change_ok(inode, attr);
 	if (error){
-		rdfs_error(inode->i_sb, __FUNCTION__, "inode change to wrong state\n");
+		//rdfs_error(inode->i_sb, __FUNCTION__, "inode change to wrong state\n");
 		return error;
 	}
 
 	if (attr->ia_valid & ATTR_SIZE && (attr->ia_size != inode->i_size || ni->i_flags & cpu_to_le32(RDFS_EOFBLOCKS_FL))) {
 		error = rdfs_setsize(inode, attr->ia_size);
 		if (error){
-			rdfs_error(inode->i_sb, __FUNCTION__, "inode set_size wrong\n");
+			//rdfs_error(inode->i_sb, __FUNCTION__, "inode set_size wrong\n");
 			return error;
 		}
 	}
@@ -723,13 +723,13 @@ int rdfs_notify_change(struct dentry *dentry, struct iattr *attr)
 	if (attr->ia_valid & ATTR_MODE){
 		error = rdfs_acl_chmod(inode);
 		if(error){
-			rdfs_error(inode->i_sb, __FUNCTION__, "inode wrong\n");
+			//rdfs_error(inode->i_sb, __FUNCTION__, "inode wrong\n");
 		}
 	}
 
 	error = rdfs_update_inode(inode);
 	if(error){
-		rdfs_error(inode->i_sb, __FUNCTION__, "update inode wrong\n");
+		//rdfs_error(inode->i_sb, __FUNCTION__, "update inode wrong\n");
 	}
 
 	return error;

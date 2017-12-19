@@ -19,7 +19,7 @@
  #include <linux/spinlock.h>
  #include <rdma/ib_verbs.h>
  #include <rdma/rdma_cm.h>
-
+ #include "server.h"
  #define SLAVE_REGISTER_SERVICE 1
  #define CLIENT_REQUEST_SERVICE 2
  #define MAX_MESSAGE_LENGTH 4096
@@ -32,6 +32,11 @@
  #define SLAVE_ALIVE   1
  #define SLAVE_REMOVED 2
 
+ struct server_socket
+ {
+     struct socket * s_sock;// create
+     struct socket * c_sock;// accept
+ };
  struct service_info
  {
      char ip[IP_LEN];
@@ -40,11 +45,7 @@
      int service_type;
      struct server_socket  sock;
  };
- struct server_socket
- {
-     struct socket * s_sock;// create
-     struct socket * c_sock;// accept
- };
+ 
  
 
  struct rdfs_message
@@ -52,4 +53,7 @@
     int m_type;
     char m_data[MAX_MESSAGE_LENGTH];
  };
+
+ int rdfs_recv_message(struct socket* sock,struct rdfs_context* ctx_p,int* m_type);
+ int rdfs_send_message(struct socket* sock,struct rdfs_context* ctx_p,int m_type);
  #endif

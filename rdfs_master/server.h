@@ -71,6 +71,7 @@ struct rdfs_context
     int rem_psn;
     int rem_lid;
     unsigned long rem_block_nums;
+    //unsigned long block_nums;
 
 };
 typedef enum {RDMA_READ,RDMA_WRITE} RDMA_OP;
@@ -82,7 +83,7 @@ struct rdma_request
     u64 req_id;
     int size;
 };
-u64 rdfs_mapping_address(char *vir_addr,int size,int ctx_idx);
+u64 rdfs_mapping_address(char *vir_addr,int size);
 void async_event_handler(struct ib_event_handler *ieh,struct ib_event *ie);
 void comp_handler_send(struct ib_cq * cq,void * cq_context);
 void comp_handler_recv(struct ib_cq * cq,void * cq_context);
@@ -98,7 +99,7 @@ int rdfs_sock_exchange_data(struct server_socket *server_sock_p,int ctx_idx);
 int rdfs_modify_qp(int ctx_idx);
 int rdfs_init_rdma_request(struct rdma_request * req,RDMA_OP op,u64 local_addr,u64 remote_addr,int size,u64 req_id);
 int rdfs_block_rw(u64 rdfs_block,int rw,phys_addr_t phys,u64 req_id,int client_idx);
-int rdfs_init_context(struct ib_device *dev);
+
 int rdfs_wait_request(void * ip_info);
 int rdfs_wait_register(void * ip_info);
 int rdfs_init(void);
@@ -110,6 +111,6 @@ void rdfs_rminit(struct rdfs_remote_memory *rrm, int remote_page_num);
 int rdfs_rmalloc(struct rdfs_remote_memory *rrm);
 int rdfs_rmfree(struct rdfs_remote_memory *rrm, int page_num);
 int rdfs_get_rm_free_page_num(struct rdfs_remote_memory *rrm);
-unsigned long dmfs_block_rw(u64 req_id,int client_idx,unsigned long start_addr,int rw,unsigned long size,phys_addr_t phys);
-
+//unsigned long dmfs_block_rw(u64 req_id,int client_idx,unsigned long start_addr,int rw,unsigned long size,phys_addr_t phys);
+unsigned long rdfs_rdma_block_rw(unsigned long local_phy_addr,unsigned long s_id,unsigned long block_id,unsigned long block_offset,int rw_flag);
 #endif

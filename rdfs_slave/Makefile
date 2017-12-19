@@ -1,5 +1,5 @@
 obj-m:= slave.o
-slave-objs = event.o memory.o  sock.o rdfs.o main.o
+slave-objs = event.o memory.o  rdfs_sock.o rdfs.o main.o
 .PHONY:load unload
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules

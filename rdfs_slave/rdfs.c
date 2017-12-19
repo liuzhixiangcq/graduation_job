@@ -15,7 +15,7 @@
 #include "memory.h"
 #include "event.h"
 #include "rdfs.h"
-#include "sock.h"
+#include "rdfs_sock.h"
 
 
 int rdfs_client_handshake(struct socket *sock,struct rdfs_context* ctx_p);

@@ -22,7 +22,8 @@
 #define MAX_CLIENT_NUMS 10
 #define IB_ACCESS_PERMITS (IB_ACCESS_REMOTE_READ|IB_ACCESS_REMOTE_WRITE|IB_ACCESS_LOCAL_WRITE)
 #define MAX_PAGE_NUM 0x800000 //32GB / 4KB
-
+#define MAX_MESSAGE_LENGTH 4096
+#define SLAVE_CTX_TO_MASTER_INFO 200
 struct server_socket
 {
     struct socket * server_sock;
@@ -78,6 +79,13 @@ struct rdfs_req_id
      u64 max_req_id;
      unsigned long lock_word;
      spinlock_t req_id_lock;
+};
+
+
+struct rdfs_message
+{
+   int m_type;
+   char m_data[MAX_MESSAGE_LENGTH];
 };
 
 #endif
