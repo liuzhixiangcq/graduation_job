@@ -32,6 +32,7 @@ static inline int rdfs_add_nondir(struct dentry *dentry, struct inode *inode)
 
 	err = rdfs_add_link(dentry, inode);
 	if(!err){
+        
 		unlock_new_inode(inode);
 		d_instantiate(dentry, inode);
 		return 0;
@@ -49,13 +50,17 @@ static struct dentry *rdfs_lookup(struct inode *dir,struct dentry *dentry,unsign
     ino_t ino;
 
     if(unlikely(dentry->d_name.len > RDFS_NAME_LEN))
-        return ERR_PTR(-ENAMETOOLONG);
+        {
+            printk("error :%s \n",__FUNCTION__);
+            return ERR_PTR(-ENAMETOOLONG);
+        }
 
     ino = rdfs_inode_by_name(dir,&dentry->d_name);
     inode = NULL;
     if(likely(ino)){
         inode = rdfs_iget(dir->i_sb,ino);
         if(unlikely(inode == ERR_PTR(-ESTALE))){
+            printk("error :%s \n",__FUNCTION__);
             //rdfs_error(dir->i_sb,__func__,
             //           "deleted inode referenced:%u",
              //          (unsigned long)ino);
@@ -76,7 +81,10 @@ static int rdfs_create(struct inode *dir, struct dentry *dentry, umode_t mode, b
 	inode = rdfs_new_inode(dir, mode, &dentry->d_name);
 
 	if(IS_ERR(inode))
-		return PTR_ERR(inode);
+		{
+            printk("error :%s \n",__FUNCTION__);
+            return PTR_ERR(inode);
+        }
 
 	inode->i_op = &rdfs_file_inode_operations;
 	if(rdfs_use_xip(inode->i_sb)){
@@ -99,7 +107,10 @@ static int rdfs_tmpfile(struct inode *dir, struct dentry *dentry, umode_t mode)
 	rdfs_trace();
 	struct inode *inode = rdfs_new_inode(dir, mode, NULL);
 	if(IS_ERR(inode))
-		return PTR_ERR(inode);
+		{
+            printk("error :%s \n",__FUNCTION__);
+            return PTR_ERR(inode);
+        }
 
 	inode->i_op = &rdfs_file_inode_operations;
 	if(rdfs_use_xip(inode->i_sb)){
@@ -120,14 +131,18 @@ static int rdfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, de
 	struct inode *inode;
 	int err;
 	if(!new_valid_dev(rdev))
-		return -EINVAL;
+		{
+            printk("error :%s \n",__FUNCTION__);
+            return -EINVAL;
+        }
 
 	dquot_initialize(dir);
 
 	inode = rdfs_new_inode(dir, mode, &dentry->d_name);
 	err = PTR_ERR(inode);
 	if(!IS_ERR(inode)){
-		mark_inode_dirty(inode);
+        printk("error :%s \n",__FUNCTION__);
+        mark_inode_dirty(inode);
 		err = rdfs_add_nondir(dentry, inode);	
 	}
 	return err;
@@ -143,22 +158,28 @@ static int rdfs_symlink(struct inode *dir, struct dentry *dentry,const char *sym
     struct inode *inode;
 
     if(unlikely(l+1 > sb->s_blocksize))
-        goto out;
-
+        {
+            printk("error :%s \n",__FUNCTION__);
+            goto out;
+        }
     dquot_initialize(dir);
 
     inode = rdfs_new_inode(dir, S_IFLNK | S_IRWXUGO , &dentry->d_name);
     err = PTR_ERR(inode);
     if(unlikely(IS_ERR(inode)))
-        goto out;
-
+        {
+            printk("error :%s \n",__FUNCTION__);
+            goto out;
+        }
     inode->i_op = &rdfs_symlink_inode_operations;
     inode->i_mapping->a_ops = &rdfs_aops;
 
     err = rdfs_page_symlink(inode, symname, l);
     if(unlikely(err))
-        goto out_fail;
-
+        {
+            printk("error :%s \n",__FUNCTION__);
+            goto out_fail;
+        }
     inode->i_size = l;
     rdfs_write_inode(inode, 0);
 
@@ -172,6 +193,7 @@ static int rdfs_symlink(struct inode *dir, struct dentry *dentry,const char *sym
     return err;
 
  out_fail:
+    printk("error :%s \n",__FUNCTION__);
     inode_dec_link_count(inode);
     unlock_new_inode(inode);
     iput(inode);
@@ -193,6 +215,7 @@ static int rdfs_link(struct dentry * old_entry, struct inode *dir,struct dentry 
     
     err = rdfs_add_link(dentry, inode);
     if(!err){
+        printk("error :%s \n",__FUNCTION__);
         d_instantiate(dentry, inode);
         rdfs_destroy_mapping(dir);
         return 0;
@@ -216,12 +239,16 @@ static int rdfs_unlink(struct inode *dir, struct dentry *dentry)
     rdfs_establish_mapping(dir);
     de = rdfs_find_entry2(dir,&dentry->d_name,&pde);
     if(unlikely(!de))
-        goto out;
-
+        {
+            printk("error :%s \n",__FUNCTION__);
+            goto out;
+        }
     err = rdfs_delete_entry(de,&pde,dir);
     if(unlikely(err))
-        goto out;
-
+        {
+            printk("error :%s \n",__FUNCTION__);
+            goto out;
+        }
     inode->i_ctime = dir->i_ctime;
     inode_dec_link_count(inode);
     err = 0;
@@ -264,8 +291,10 @@ static int rdfs_mkdir(struct inode *dir,struct dentry *dentry,umode_t mode)
     inode = rdfs_new_inode(dir,S_IFDIR | mode,&dentry->d_name);
     err = PTR_ERR(inode);
     if(unlikely(IS_ERR(inode)))
-        goto out_dir;
-
+        {
+            printk("error :%s \n",__FUNCTION__);
+            goto out_dir;
+        }
     inode->i_op = &rdfs_dir_inode_operations;
     inode->i_fop = &rdfs_dir_operations;
     inode->i_mapping->a_ops = &rdfs_aops;
@@ -276,10 +305,16 @@ static int rdfs_mkdir(struct inode *dir,struct dentry *dentry,umode_t mode)
 
     err = rdfs_make_empty(inode,dir);//set the first fragment of directory
     if(unlikely(err))
-        goto out_fail;
+        {
+            printk("error :%s \n",__FUNCTION__);
+            goto out_fail;
+        }
     err = rdfs_add_link(dentry,inode);
     if(unlikely(err))
-        goto out_fail;
+        {
+            printk("error :%s \n",__FUNCTION__);
+            goto out_fail;
+        }
 
     unlock_new_inode(inode);
     d_instantiate(dentry,inode);//indicate that it is now in use by the dcache
@@ -289,6 +324,7 @@ static int rdfs_mkdir(struct inode *dir,struct dentry *dentry,umode_t mode)
     return err;
 
  out_fail:
+    printk("error :%s \n",__FUNCTION__);
     inode_dec_link_count(inode);
     inode_dec_link_count(inode);
     unlock_new_inode(inode);
@@ -338,7 +374,8 @@ static int rdfs_rename(struct inode *old_dir, struct dentry *old_dentry,struct i
         goto out_old_dir;
 
     if(S_ISDIR(old_inode->i_mode)){
-		isdir = 1;
+        printk("error :%s \n",__FUNCTION__);
+        isdir = 1;
         err = -EIO;
         rdfs_establish_mapping(old_inode);
         dir_de = rdfs_dotdot(old_inode);

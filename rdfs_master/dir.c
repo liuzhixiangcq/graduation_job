@@ -97,6 +97,7 @@ static int rdfs_readdir(struct file *file, struct dir_context *ctx)
 	for(;(char *)nde < end_addr;nde =  rdfs_next_entry(nde)){
 		if(nde->rec_len == 0){
 			//rdfs_error(sb, __FUNCTION__, "zero-length directory entry\n");
+			printk("error :%s \n",__FUNCTION__);
 			err = -EIO;
 			goto final;
 		}
@@ -139,6 +140,7 @@ struct rdfs_dir_entry *rdfs_find_entry2(struct inode *dir, struct qstr *child, s
 	while((void *)nde < end)
 	{
 		if(unlikely(nde->rec_len == 0)){
+			printk("error :%s \n",__FUNCTION__);
 			//rdfs_error(dir->i_sb,__FUNCTION__,"zero-length directory entry\n");
 			goto out;
 		}
@@ -213,6 +215,7 @@ int rdfs_add_link(struct dentry *dentry,struct inode *inode)
 
 	if(unlikely(!vaddr))
     {
+		printk("error :%s \n",__FUNCTION__);
     	err = -ENOMEM;
     	goto out;
 	}
@@ -235,11 +238,13 @@ int rdfs_add_link(struct dentry *dentry,struct inode *inode)
             if(unlikely(de->rec_len == 0))
             {
                 //rdfs_error(dir->i_sb,__func__,"zero_length directory entry");
-                err = -EIO;
+				err = -EIO;
+				printk("error :%s \n",__FUNCTION__);
                 goto out;
             }
             if(rdfs_match(namelen,name,de))
             {
+				printk("error :%s \n",__FUNCTION__);
                 err = -EEXIST;
         		goto out;
             }
@@ -261,6 +266,7 @@ need_new_block:
 		i_size_write(dir, dir->i_size + PAGE_SIZE);
 		if(unlikely(err))
         {
+			printk("error :%s \n",__FUNCTION__);
 			//rdfs_error(dir->i_sb, __FUNCTION__, "alloc new block failed!\n");
 			return err;
 		}
@@ -307,6 +313,7 @@ int rdfs_delete_entry(struct rdfs_dir_entry *dir,struct rdfs_dir_entry **pdir,st
     prev = *pdir;
     if(unlikely(dir->rec_len == 0))
     {
+		printk("error :%s \n",__FUNCTION__);
         //rdfs_error(parent->i_sb,__func__,"zero_length directory entry");
         err = -EIO;
         goto out;
@@ -337,6 +344,7 @@ int rdfs_make_empty(struct inode *inode,struct inode *parent)
 	printk("%s -->1\n",__FUNCTION__);
 	if(unlikely(err))
     {
+		printk("error :%s \n",__FUNCTION__);
 		//rdfs_error(inode->i_sb, __FUNCTION__, "establish mapping!\n");
 		return err;
 	}
@@ -347,12 +355,14 @@ int rdfs_make_empty(struct inode *inode,struct inode *parent)
 		i_size_write(inode, PAGE_SIZE);
 		if(unlikely(err))
         {
+			printk("error :%s \n",__FUNCTION__);
 			//rdfs_error(inode->i_sb, __FUNCTION__, "alloc new block failed!\n");
 			return err;
 	    }
 	}
     else
     {
+		printk("error :%s \n",__FUNCTION__);
 		err = -EIO;
 		goto fail;
 	}
@@ -361,34 +371,35 @@ int rdfs_make_empty(struct inode *inode,struct inode *parent)
 	vaddr = ni->i_virt_addr;
 	if(unlikely(!vaddr))
     {
+		printk("error :%s \n",__FUNCTION__);
     	err = -ENOMEM;
    		goto fail;
     }
-    printk("%s -->4\n",__FUNCTION__);
+   
 	de = (struct rdfs_dir_entry *)vaddr;
-	printk("%s -->41 de:%lx\n",__FUNCTION__,de);
+
 	de->name_len = 1;
-	printk("%s -->410 de:%lx\n",__FUNCTION__,de);
+
 	de->rec_len = cpu_to_le16(RDFS_DIR_REC_LEN(1));
-	printk("%s -->42\n",__FUNCTION__);
+
 	memcpy(de->name,".\0\0",4);
-	printk("%s -->43\n",__FUNCTION__);
+
 	de->inode = cpu_to_le32(inode->i_ino);
-	printk("%s -->44 de->inode:%lx\n",__FUNCTION__,de->inode);
+	
 	rdfs_set_de_type(de,inode);
-	printk("%s -->45\n",__FUNCTION__);
+
 	de = (struct rdfs_dir_entry *)(vaddr + RDFS_DIR_REC_LEN(1));
-	printk("%s -->46 de:%lx\n",__FUNCTION__,de);
+
 	de->name_len = 2;
 	de->rec_len = cpu_to_le16(PAGE_SIZE - RDFS_DIR_REC_LEN(1));
 	de->inode = cpu_to_le32(parent->i_ino);
-	printk("%s -->47 de->inode:%lx\n",__FUNCTION__,de->inode);
+
 	memcpy(de->name,"..\0",4);
-	printk("%s -->48\n",__FUNCTION__);
+
 	rdfs_set_de_type(de,inode);
-	printk("%s -->49\n",__FUNCTION__);
+
 fail:
-	printk("%s -->5\n",__FUNCTION__);
+	
 	err = rdfs_destroy_mapping(inode); //maybe wrong ,don't assign the err
 	return err;
 }
@@ -421,8 +432,7 @@ int rdfs_empty_dir(struct inode *inode)
 
     while((void *)de <= vaddr){
         if(unlikely(de->rec_len == 0)){
-            //rdfs_error(inode->i_sb,__func__,
-              //         "zero_length directory entry");
+            printk("error :%s \n",__FUNCTION__);
             printk("vaddr=%p,de=%p\n",vaddr,de);
             goto not_empty;
         }

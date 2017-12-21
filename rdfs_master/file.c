@@ -11,7 +11,35 @@
 #include <linux/uio.h>
 #include <linux/mm.h>
 #include <linux/uaccess.h>
+#include <linux/linkage.h>
+#include <linux/wait.h>
+#include <linux/kdev_t.h>
+#include <linux/dcache.h>
+#include <linux/path.h>
+#include <linux/stat.h>
+#include <linux/cache.h>
+#include <linux/list.h>
+#include <linux/llist.h>
+#include <linux/radix-tree.h>
+#include <linux/rbtree.h>
+#include <linux/init.h>
+#include <linux/pid.h>
+#include <linux/bug.h>
+#include <linux/mutex.h>
+#include <linux/capability.h>
+#include <linux/semaphore.h>
+#include <linux/fiemap.h>
+#include <linux/rculist_bl.h>
+#include <linux/atomic.h>
+#include <linux/shrinker.h>
+#include <linux/migrate_mode.h>
+#include <linux/uidgid.h>
+#include <linux/lockdep.h>
+#include <linux/percpu-rwsem.h>
+#include <linux/blk_types.h>
 
+#include <asm/byteorder.h>
+#include <uapi/linux/fs.h>
 #include <linux/delay.h>
 
 #include "rdfs.h"
@@ -22,6 +50,7 @@
 #include "inode.h"
 #include "pgtable.h"
 #include "rdfs_config.h"
+#include "memory.h"
 #define CLEAN 1
 #define NO_CLEAN 0
 #define LOCK 1
@@ -53,6 +82,7 @@ extern void print_pgtable(struct mm_struct* mm,unsigned long address);
 static int rdfs_open_file(struct inode *inode, struct file *filp)
 {
 	rdfs_trace();
+	//BUG_ON(1);
 	int errval = 0;
 	errval = rdfs_establish_mapping(inode);
 	struct rdfs_inode* nv_i = get_rdfs_inode(inode->i_sb,inode->i_ino);

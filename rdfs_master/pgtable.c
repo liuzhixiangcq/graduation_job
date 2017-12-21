@@ -20,38 +20,38 @@
 #include "memory.h"
 static inline pud_t *rdfs_pud_alloc_one(void)
 {
-	rdfs_trace();
+	//rdfs_trace();
     return (pud_t*)rdfs_get_zeroed_page();
 }
 
 static inline pmd_t *rdfs_pmd_alloc_one(void)
 {
-	rdfs_trace();
+	//rdfs_trace();
     return (pmd_t*)rdfs_get_zeroed_page();
 }
 
 static inline pte_t *rdfs_pte_alloc_one(void)
 {
-	rdfs_trace();
+	//rdfs_trace();
     return (pte_t*)rdfs_get_zeroed_page();
 }
 
 
 static inline void rdfs_pud_free(struct super_block *sb, pud_t *pud)
 {
-	rdfs_trace();
+	//rdfs_trace();
     rdfs_free_block(sb, rdfs_pa(pud));
 }
 
 static inline void rdfs_pmd_free(struct super_block *sb, pmd_t *pmd)
 {
-	rdfs_trace();
+	//rdfs_trace();
     rdfs_free_block(sb, rdfs_pa(pmd));
 }
 
 static inline void rdfs_pte_free(struct super_block *sb, pte_t *pte)
 {
-	rdfs_trace();
+	//rdfs_trace();
     rdfs_free_block(sb, rdfs_pa(pte));
 }
 
@@ -60,8 +60,10 @@ int __rdfs_pmd_alloc(struct super_block *sb, pud_t *pud)
 	rdfs_trace();
     pmd_t *new = rdfs_pmd_alloc_one();
     if (!new)
-        return -ENOMEM;
-    
+        {
+            printk("error :%s \n",__FUNCTION__);
+            return -ENOMEM;
+        }
     smp_wmb();
 
     if(pud_present(*pud)) 
@@ -77,8 +79,10 @@ int __rdfs_pte_alloc(struct super_block *sb, pmd_t *pmd)
 	rdfs_trace();
     pte_t *new = rdfs_pte_alloc_one();
     if (!new)
-        return -ENOMEM;
-
+        {
+            printk("error :%s \n",__FUNCTION__);
+            return -ENOMEM;
+        }
     smp_wmb();
 
     if(pmd_present(*pmd))
@@ -342,6 +346,7 @@ int rdfs_destroy_mapping(struct inode *inode)
 
 	if(!vaddr)
 	{
+        printk("error :%s \n",__FUNCTION__);
     	return 0;
     }
 	if(--ni_info->mapping_count>0)

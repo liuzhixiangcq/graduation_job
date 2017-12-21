@@ -37,7 +37,10 @@ extern struct file_operations rdfs_dir_operations;
 extern struct inode_operations rdfs_dir_inode_operations;
 
 static int rdfs_readpage(struct file *file, struct page *page);
-
+int rdfs_get_xip_mem(struct address_space *a_ops, pgoff_t offset, int t,void **arg, unsigned long *m)
+{
+	return 0;
+}
 const struct address_space_operations rdfs_aops_xip = 
 {
 	.get_xip_mem	= rdfs_get_xip_mem,
@@ -45,7 +48,7 @@ const struct address_space_operations rdfs_aops_xip =
 const struct address_space_operations rdfs_aops = 
 {
 	.readpage	= rdfs_readpage,
-	//.direct_IO	= rdfs_direct_IO,
+	.direct_IO	= rdfs_direct_IO,
 };
 
 u64 rdfs_find_data_block(struct inode *inode, unsigned long file_blocknr)
@@ -106,7 +109,10 @@ static void __rdfs_truncate_blocks(struct inode *inode, loff_t start, loff_t end
 	ni = get_rdfs_inode(sb, ino);
 
 	if(!ni->i_pg_addr)
-		return ;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return ;
+		}
 	
 	first_blocknr = (start + sb->s_blocksize-1) >> sb->s_blocksize_bits;
 	
@@ -150,7 +156,7 @@ int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type)
 	struct rdfs_inode *ni = get_rdfs_inode(sb, ino);
 	struct rdfs_sb_info *nsi = RDFS_SB(sb);
 	unsigned long *temp;
-	
+	unsigned long pte_addr;
 	phys_addr_t phys, base;
 	mm = current->mm;
 	base = nsi->phy_addr;
@@ -176,7 +182,7 @@ int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type)
 			}
 			else
 			{
-				rdfs_new_pte(ni_info,temp);
+				rdfs_new_pte(ni_info,&pte_addr);
 			}
             
 	           
@@ -185,12 +191,13 @@ int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type)
 			if(type == ALLOC_PAGE)
 				errval = rdfs_insert_page(sb, inode, rdfs_pa(temp));
 			else
-				errval = rdfs_insert_page(sb,inode,*temp);
+				errval = rdfs_insert_page(sb,inode,pte_addr);
             if(unlikely(errval != 0))
                 return errval;
         }
         return errval;
     }else{
+		printk("error :%s \n",__FUNCTION__);
         //rdfs_error(sb, __FUNCTION__, "no block space left!\n");
         return -ENOSPC;
     }
@@ -208,7 +215,8 @@ static int rdfs_read_inode(struct inode *inode, struct rdfs_inode *ni)
 	struct rdfs_inode_info *ni_info;
 	ni_info = RDFS_I(inode);
 	spin_lock(&read_inode_lock);
-	 if (rdfs_calc_checksum((u8 *)ni, RDFS_INODE_SIZE)) { 
+	 if (rdfs_calc_checksum((u8 *)ni, RDFS_INODE_SIZE)) {
+		printk("error :%s \n",__FUNCTION__); 
 	 	//rdfs_error(inode->i_sb, (char *)rdfs_read_inode, (char *)"checksum error in inode %08x\n",  (u32)inode->i_ino); 
 	 	goto bad_inode;
 	 }
@@ -273,6 +281,7 @@ static int rdfs_read_inode(struct inode *inode, struct rdfs_inode *ni)
 	return 0;
 
  bad_inode:
+ 	printk("error :%s \n",__FUNCTION__);
 	make_bad_inode(inode);
 
 	return ret;
@@ -286,7 +295,10 @@ int rdfs_update_inode(struct inode *inode)
 
 	ni = get_rdfs_inode(inode->i_sb, inode->i_ino);
 	if (!ni)
-		return -EACCES;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EACCES;
+		}
 	spin_lock(&update_inode_lock);
 
 	rdfs_memunlock_inode(inode->i_sb, ni);
@@ -323,6 +335,7 @@ void rdfs_free_inode(struct inode *inode)
 	spin_lock(&numa_des->inode_lock);
 	inode_phy = get_rdfs_inode_phy_addr(sb, inode->i_ino);
 	if(inode_phy == -BADINO)
+		printk("error :%s \n",__FUNCTION__);
 		//rdfs_error(sb, __FUNCTION__, (char *)-BADINO);
 	
 	rdfs_memunlock_inode(sb, ni);
@@ -388,12 +401,16 @@ struct inode *rdfs_iget(struct super_block *sb, unsigned long ino)
 	inode = iget_locked(sb, ino);
 	inode->i_ino = ino;
 	if (unlikely(!inode))
-		return ERR_PTR(-ENOMEM);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return ERR_PTR(-ENOMEM);
+		}
 	if (!(inode->i_state & I_NEW))
 		return inode;
 
 	ni = get_rdfs_inode(sb, ino);
 	if (!ni) {
+		printk("error :%s \n",__FUNCTION__);
 		err = -EACCES;
 		goto fail;
 	}
@@ -404,6 +421,7 @@ struct inode *rdfs_iget(struct super_block *sb, unsigned long ino)
 	unlock_new_inode(inode);
 	return inode;
 fail:
+	printk("error :%s \n",__FUNCTION__);
 	iget_failed(inode);
 	return ERR_PTR(err);
 }
@@ -429,6 +447,10 @@ static void rdfs_inode_info_init(struct rdfs_inode_info* ni_info)
 		mutex_init(&ni_info->truncate_mutex);
 		mutex_init(&ni_info->i_meta_mutex);
 		rwlock_init(&ni_info->state_rwlock);
+		
+		spin_lock_init(&ni_info->used_bitmap_list_lock);
+		ni_info->pre_bitmap = NULL;
+		ni_info->used_bitmap_list = NULL;
 	}
 }
 
@@ -453,7 +475,10 @@ struct inode *rdfs_new_inode(struct inode *dir, umode_t mode, const struct qstr 
 	inode = new_inode(sb);
 
 	if(!inode)
+	{
+		printk("error :%s \n",__FUNCTION__);
 		return ERR_PTR(-ENOMEM);
+	}
 
 	ni_info = RDFS_I(inode);
 	sbi = RDFS_SB(sb) ;
@@ -506,6 +531,7 @@ struct inode *rdfs_new_inode(struct inode *dir, umode_t mode, const struct qstr 
 	inode->i_generation = atomic_add_return(1, &sbi->next_generation);
 	rdfs_set_inode_flags(inode);
 	if (insert_inode_locked(inode) < 0) {
+		printk("error :%s \n",__FUNCTION__);
 		errval = -EINVAL;
 		goto fail1;
 	}
@@ -528,6 +554,7 @@ struct inode *rdfs_new_inode(struct inode *dir, umode_t mode, const struct qstr 
 	errval = rdfs_init_pg_table(inode->i_sb, inode->i_ino);
 	return inode;
 fail2:
+	printk("error :%s \n",__FUNCTION__);
 	spin_unlock(&numa_des->inode_lock);
 
 	clear_nlink(inode);
@@ -535,6 +562,7 @@ fail2:
 	iput(inode);
 	return ERR_PTR(errval);
 fail1:
+	printk("error :%s \n",__FUNCTION__);
 	spin_unlock(&numa_des->inode_lock);
 
 	make_bad_inode(inode);
@@ -555,7 +583,10 @@ static int rdfs_readpage(struct file *file, struct page *page)
 
 	buf = kmap(page);
 	if (!buf)
-		return -ENOMEM;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -ENOMEM;
+		}
 	
 	offset = page_offset(page);
 	size = i_size_read(inode);
@@ -631,9 +662,15 @@ static int rdfs_setsize(struct inode *inode, loff_t newsize)
 	loff_t oldsize = inode->i_size;
 	if (!(S_ISREG(inode->i_mode) || S_ISDIR(inode->i_mode) ||
 	    S_ISLNK(inode->i_mode)))
-		return -EINVAL;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EINVAL;
+		}
 	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
-		return -EPERM;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EPERM;
+		}
 
 	if(newsize != oldsize){
 		if (mapping_is_xip(inode->i_mapping))
@@ -665,7 +702,10 @@ int __rdfs_write_inode(struct inode *inode, int do_sync)
 	struct rdfs_inode * ni = get_rdfs_inode(sb, ino);
 	int err = 0;
 	if (IS_ERR(ni))
- 		return -EIO;
+ 		{
+			printk("error :%s \n",__FUNCTION__);
+			 return -EIO;
+		 }
 
 	if (ni_info->i_state & RDFS_STATE_NEW)
 	memset(ni, 0, RDFS_SB(sb)->s_inode_size);
@@ -701,12 +741,14 @@ int rdfs_notify_change(struct dentry *dentry, struct iattr *attr)
 	struct rdfs_inode *ni = get_rdfs_inode(inode->i_sb,inode->i_ino);
 	int error = 0;
 	if(!ni){
+		printk("error :%s \n",__FUNCTION__);
 		//rdfs_error(inode->i_sb, __FUNCTION__, "inode don't exist\n");
 		return -EACCES;
 	}
 
 	error = inode_change_ok(inode, attr);
 	if (error){
+		printk("error :%s \n",__FUNCTION__);
 		//rdfs_error(inode->i_sb, __FUNCTION__, "inode change to wrong state\n");
 		return error;
 	}
@@ -714,6 +756,7 @@ int rdfs_notify_change(struct dentry *dentry, struct iattr *attr)
 	if (attr->ia_valid & ATTR_SIZE && (attr->ia_size != inode->i_size || ni->i_flags & cpu_to_le32(RDFS_EOFBLOCKS_FL))) {
 		error = rdfs_setsize(inode, attr->ia_size);
 		if (error){
+			printk("error :%s \n",__FUNCTION__);
 			//rdfs_error(inode->i_sb, __FUNCTION__, "inode set_size wrong\n");
 			return error;
 		}
@@ -723,12 +766,14 @@ int rdfs_notify_change(struct dentry *dentry, struct iattr *attr)
 	if (attr->ia_valid & ATTR_MODE){
 		error = rdfs_acl_chmod(inode);
 		if(error){
+			printk("error :%s \n",__FUNCTION__);
 			//rdfs_error(inode->i_sb, __FUNCTION__, "inode wrong\n");
 		}
 	}
 
 	error = rdfs_update_inode(inode);
 	if(error){
+		printk("error :%s \n",__FUNCTION__);
 		//rdfs_error(inode->i_sb, __FUNCTION__, "update inode wrong\n");
 	}
 

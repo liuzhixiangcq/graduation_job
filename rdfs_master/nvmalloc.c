@@ -316,7 +316,7 @@ int nvmap_file(struct super_block* sb, unsigned long addr, pud_t *ppud, struct m
             printk(KERN_WARNING "nvmap: empty pud from addr: 0x%lx\n", addr);
             return -ENOMEM;
         }
-        
+        printk("%s *ppud :%lx\n",__FUNCTION__,*ppud);
         smp_wmb();
         spin_lock(&mm->page_table_lock);
 
@@ -326,7 +326,7 @@ int nvmap_file(struct super_block* sb, unsigned long addr, pud_t *ppud, struct m
         spin_unlock(&mm->page_table_lock);
         addr = pud_addr_end(addr, end);
         ppud++;
-        printk("%s *ppud :%lx\n",__FUNCTION__,*ppud);
+        
     }while(!pud_none(*ppud));
 
     sync_global_pgds(addr, end,0);

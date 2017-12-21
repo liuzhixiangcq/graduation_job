@@ -79,4 +79,6 @@
   int rdfs_new_pte(struct rdfs_inode_info * ri_info,unsigned long *phyaddr);
   int rdfs_init_slave_memory_bitmap_list(struct slave_info *s);
   int rdfs_free_slave_memory_bitmap_list(struct slave_info *s);
+  int rdfs_init_pte_free_list(int page_nums);
+  int rdfs_free_pte_free_list(void);
  #endif

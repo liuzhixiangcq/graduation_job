@@ -20,10 +20,12 @@ static inline int rdfs_acl_count(size_t size)
 	size -= sizeof(struct rdfs_acl_header);
 	s = size - 4 * sizeof(struct rdfs_acl_entry_short);
 	if (s < 0) {
+		printk("error :%s \n",__FUNCTION__);
 		if (size % sizeof(struct rdfs_acl_entry_short))
 			return -1;
 		return size / sizeof(struct rdfs_acl_entry_short);
 	} else {
+		printk("error :%s \n",__FUNCTION__);
 		if (s % sizeof(struct rdfs_acl_entry))
 			return -1;
 		return s / sizeof(struct rdfs_acl_entry) + 4;
@@ -37,21 +39,39 @@ static struct posix_acl *rdfs_acl_load(const void *value, size_t size)
 	struct posix_acl *acl;
 
 	if (!value)
-		return NULL;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return NULL;
+		}
 	if (size < sizeof(struct rdfs_acl_header))
-		return ERR_PTR(-EINVAL);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return ERR_PTR(-EINVAL);
+		}
 	if (((struct rdfs_acl_header *)value)->a_version !=
 	    cpu_to_be32(rdfs_ACL_VERSION))
-		return ERR_PTR(-EINVAL);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return ERR_PTR(-EINVAL);
+		}
 	value = (char *)value + sizeof(struct rdfs_acl_header);
 	count = rdfs_acl_count(size);
 	if (count < 0)
-		return ERR_PTR(-EINVAL);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return ERR_PTR(-EINVAL);
+		}
 	if (count == 0)
-		return NULL;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return NULL;
+		}
 	acl = posix_acl_alloc(count, GFP_KERNEL);
 	if (!acl)
-		return ERR_PTR(-ENOMEM);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return ERR_PTR(-ENOMEM);
+		}
 	for (n = 0; n < count; n++) {
 		struct rdfs_acl_entry *entry = (struct rdfs_acl_entry *)value;
 		if ((char *)value + sizeof(struct rdfs_acl_entry_short) > end)
@@ -89,6 +109,7 @@ static struct posix_acl *rdfs_acl_load(const void *value, size_t size)
 	return acl;
 
 fail:
+	printk("error :%s \n",__FUNCTION__);
 	posix_acl_release(acl);
 	return ERR_PTR(-EINVAL);
 }
@@ -115,7 +136,10 @@ static void *rdfs_acl_save(const struct posix_acl *acl, size_t *size)
 	ext_acl = kmalloc(sizeof(struct rdfs_acl_header) + acl->a_count *
 			sizeof(struct rdfs_acl_entry), GFP_KERNEL);
 	if (!ext_acl)
-		return ERR_PTR(-ENOMEM);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return ERR_PTR(-ENOMEM);
+		}
 	ext_acl->a_version = cpu_to_be32(rdfs_ACL_VERSION);
 	e = (char *)ext_acl + sizeof(struct rdfs_acl_header);
 	for (n = 0; n < acl->a_count; n++) {
@@ -147,6 +171,7 @@ static void *rdfs_acl_save(const struct posix_acl *acl, size_t *size)
 	return (char *)ext_acl;
 
 fail:
+	printk("error :%s \n",__FUNCTION__);
 	kfree(ext_acl);
 	return ERR_PTR(-EINVAL);
 }
@@ -160,7 +185,10 @@ struct posix_acl *rdfs_get_acl(struct inode *inode, int type)
 	int retval;
 
 	if (!test_opt(inode->i_sb, POSIX_ACL))
+	{
+		printk("error :%s \n",__FUNCTION__);
 		return NULL;
+	}
 
 	acl = get_cached_acl(inode, type);
 	if (acl != ACL_NOT_CACHED)
@@ -180,20 +208,31 @@ struct posix_acl *rdfs_get_acl(struct inode *inode, int type)
 	if (retval > 0) {
 		value = kmalloc(retval, GFP_KERNEL);
 		if (!value)
+		{
+			printk("error :%s \n",__FUNCTION__);
 			return ERR_PTR(-ENOMEM);
+		}
 		retval = rdfs_xattr_get(inode, name_index, "", value, retval);
 	}
 	if (retval > 0)
 		acl = rdfs_acl_load(value, retval);
 	else if (retval == -ENODATA || retval == -ENOSYS)
-		acl = NULL;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			acl = NULL;
+		}
 	else
-		acl = ERR_PTR(retval);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			acl = ERR_PTR(retval);
+		}
 	kfree(value);
 
 	if (!IS_ERR(acl))
-		set_cached_acl(inode, type, acl);
-
+		{
+			printk("error :%s \n",__FUNCTION__);
+			set_cached_acl(inode, type, acl);
+		}
 	return acl;
 }
 
@@ -206,7 +245,10 @@ static int rdfs_set_acl(struct inode *inode, int type, struct posix_acl *acl)
 	int error;
 
 	if (S_ISLNK(inode->i_mode))
-		return -EOPNOTSUPP;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EOPNOTSUPP;
+		}
 	if (!test_opt(inode->i_sb, POSIX_ACL))
 		return 0;
 
@@ -216,7 +258,10 @@ static int rdfs_set_acl(struct inode *inode, int type, struct posix_acl *acl)
 		if (acl) {
 			error = posix_acl_equiv_mode(acl, &inode->i_mode);
 			if (error < 0)
-				return error;
+				{
+					printk("error :%s \n",__FUNCTION__);
+					return error;
+				}
 			else {
 				inode->i_ctime = CURRENT_TIME_SEC;
 				mark_inode_dirty(inode);
@@ -231,12 +276,16 @@ static int rdfs_set_acl(struct inode *inode, int type, struct posix_acl *acl)
 			return acl ? -EACCES : 0;
 		break;
 	default:
+		printk("error :%s \n",__FUNCTION__);
 		return -EINVAL;
 	}
 	if (acl) {
 		value = rdfs_acl_save(acl, &size);
 		if (IS_ERR(value))
-			return (int)PTR_ERR(value);
+			{
+				printk("error :%s \n",__FUNCTION__);
+				return (int)PTR_ERR(value);
+			}
 	}
 
 	error = rdfs_xattr_set(inode, name_index, "", value, size, 0);
@@ -257,7 +306,10 @@ int rdfs_init_acl(struct inode *inode, struct inode *dir)
 		if (test_opt(dir->i_sb, POSIX_ACL)) {
 			acl = rdfs_get_acl(dir, ACL_TYPE_DEFAULT);
 			if (IS_ERR(acl))
-				return PTR_ERR(acl);
+				{
+					printk("error :%s \n",__FUNCTION__);
+					return PTR_ERR(acl);
+				}
 		}
 		if (!acl)
 			inode->i_mode &= ~current_umask();
@@ -272,7 +324,10 @@ int rdfs_init_acl(struct inode *inode, struct inode *dir)
 		}
 		//error = posix_acl_create(&acl, 0,GFP_KERNEL, &mode);
 		if (error < 0)
-			return error;
+			{
+				printk("error :%s \n",__FUNCTION__);
+				return error;
+			}
 		inode->i_mode = mode;
 		if (error > 0) {
 			/* This is an extended ACL */
@@ -293,10 +348,16 @@ int rdfs_acl_chmod(struct inode *inode)
 	if (!test_opt(inode->i_sb, POSIX_ACL))
 		return 0;
 	if (S_ISLNK(inode->i_mode))
-		return -EOPNOTSUPP;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EOPNOTSUPP;
+		}
 	acl = rdfs_get_acl(inode, ACL_TYPE_ACCESS);
 	if (IS_ERR(acl) || !acl)
-		return PTR_ERR(acl);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return PTR_ERR(acl);
+		}
 	//error = posix_acl_chmod(&acl,inode->i_mode);
 	if (error)
 		return error;
@@ -336,15 +397,26 @@ static int rdfs_xattr_get_acl(struct dentry *dentry, const char *name, void *buf
 	int error;
 
 	if (strcmp(name, "") != 0)
-		return -EINVAL;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EINVAL;
+		}
 	if (!test_opt(dentry->d_sb, POSIX_ACL))
-		return -EOPNOTSUPP;
-
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EOPNOTSUPP;
+		}
 	acl = rdfs_get_acl(dentry->d_inode, type);
 	if (IS_ERR(acl))
-		return PTR_ERR(acl);
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return PTR_ERR(acl);
+		}
 	if (acl == NULL)
-		return -ENODATA;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -ENODATA;
+		}
 	error = posix_acl_to_xattr(&init_user_ns, acl, buffer, size);
 	posix_acl_release(acl);
 
@@ -358,16 +430,27 @@ static int rdfs_xattr_set_acl(struct dentry *dentry, const char *name,const void
 	int error;
 
 	if (strcmp(name, "") != 0)
-		return -EINVAL;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EINVAL;
+		}
 	if (!test_opt(dentry->d_sb, POSIX_ACL))
-		return -EOPNOTSUPP;
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EOPNOTSUPP;
+		}
 	if (!inode_owner_or_capable(dentry->d_inode))
-		return -EPERM;
-
+		{
+			printk("error :%s \n",__FUNCTION__);
+			return -EPERM;
+		}
 	if (value) {
 		acl = posix_acl_from_xattr(&init_user_ns, value, size);
 		if (IS_ERR(acl))
-			return PTR_ERR(acl);
+			{
+				printk("error :%s \n",__FUNCTION__);
+				return PTR_ERR(acl);
+			}
 		else if (acl) {
 			error = posix_acl_valid(acl);
 			if (error)

@@ -125,6 +125,7 @@
 
  int rdfs_init_pte_free_list(int page_nums)
  {
+	 rdfs_trace();
 	 unsigned long phyaddr;
 	 rdfs_new_block(&phyaddr,page_nums,NULL);
 	 int pte_nums = page_nums * 4096 / 8;
@@ -174,7 +175,20 @@
 	}
 	unsigned long start_block_id;
 	struct mem_bitmap_block * tmp = NULL,*next = NULL;
-
+	if(ri_info->pre_bitmap == NULL)
+	{
+		ri_info->pre_bitmap = (struct pre_alloc_bitmap*)kmalloc(sizeof(struct pre_alloc_bitmap),GFP_KERNEL);
+		if(ri_info->pre_bitmap == NULL)
+			printk("%s pre alloc bitmap failed\n",__FUNCTION__);
+			
+		*s_id = rdfs_select_slave();
+		struct slave_info * s = &slave_infos[*s_id];
+		start_block_id = rdfs_alloc_slave_memory_bitmap(s);
+		ri_info->pre_bitmap->pre_start_block_id = start_block_id;
+		ri_info->pre_bitmap->pre_alloc_bitmap = 0;
+		ri_info->pre_bitmap->pre_alloc_slave_id = *s_id;
+		ri_info->pre_bitmap->pre_index = 0; 
+	}
 	// pre_bitmap used completed
 	if(ri_info->pre_bitmap->pre_index == 64)
 	{
@@ -265,28 +279,34 @@
  int rdfs_new_pte(struct rdfs_inode_info * ri_info,unsigned long *phyaddr)
  {
 	 //int s_id = rdfs_select_slave();
+	 rdfs_trace();
 	 int i;
 	 unsigned long tmp;
 	 unsigned long pte_value;
 	 unsigned long s_id,block_id;
 	 spin_lock(&pte_free_list->pte_lock);
+	 printk("%s -- spin_lock ok free_pte_nums:%ld\n",__FUNCTION__,pte_free_list->free_pte_nums);
 	 if(pte_free_list->free_pte_nums < 1)
 	 {
 		 printk("%s -- pte_free_list not enogh\n",__FUNCTION__);
 		 spin_unlock(&pte_free_list->pte_lock);
 		 return -1;
 	 }
-	
+	 printk("%s free_pte_nums ok\n",__FUNCTION__);
 	 *phyaddr = pte_free_list->pte_start_addr;
-	 
+	 printk("step 1 phyaddr=%lx\n",*phyaddr);
 	 tmp = pte_free_list->pte_start_addr;
+	 printk("step 2\n");
 	 pte_free_list->pte_start_addr = *(unsigned long*)(rdfs_va(tmp));
+	 printk("step 3\n");
 	 spin_unlock(&pte_free_list->pte_lock);
-
+	 printk("step 4\n");
 	 rdfs_alloc_slave_bitmap_memory(ri_info,&block_id,&s_id);
+	 printk("step 5\n");
 	 pte_value = (s_id << SLAVE_ID_SHIFT) & block_id; 
+	 printk("step 6\n");
 	 *(unsigned long*)(rdfs_va(tmp)) = pte_value;
-	 
+	 printk("step 7\n");
 	 return 0;
  }
  int rdfs_free_pte(struct rdfs_inode_info * ri_info,unsigned long phyaddr)

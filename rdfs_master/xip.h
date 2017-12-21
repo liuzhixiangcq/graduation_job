@@ -11,7 +11,7 @@
 
 #define mapping_is_xip(map)	0
 #define rdfs_use_xip(sb)	0
-#define rdfs_get_xip_mem	NULL
+//#define rdfs_get_xip_mem	NULL
 
 #endif
 

@@ -7,7 +7,7 @@
 #define _INIT_H_
 
 #define MASTER_IP "192.168.0.2"
-#define SLAVE_IP "192.168.0.3"
+#define SLAVE_IP "192.168.0.2"
 
 // master listen on port 18515 to wait slave node register
 #define MASTER_REGISTER_PORT 18515

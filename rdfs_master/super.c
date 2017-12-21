@@ -31,6 +31,8 @@
  #include "pgtable.h"
  #include "inode.h"
  #include "dir.h"
+ #include "rdfs_config.h"
+ #include "memory.h"
  struct super_block* RDFS_SUPER_BLOCK_ADDRESS;
  EXPORT_SYMBOL(RDFS_SUPER_BLOCK_ADDRESS);
 
@@ -131,7 +133,7 @@
      /*establish pagetable for root inode*/
  
      rdfs_init_pg_table(sb, RDFS_ROOT_INO);
- 
+     rdfs_init_pte_free_list(RDFS_PTE_PAGE_NUMS);
      rdfs_sync_inode(root_i);
  
      if (super->s_numa_flag)
