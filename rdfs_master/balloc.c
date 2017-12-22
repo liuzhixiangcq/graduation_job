@@ -43,7 +43,7 @@ static struct file_system_type **rdfs_find_filesystem(const char *name, unsigned
 
 sector_t rdfs_get_bdev_size(struct block_device* bdev)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	return bdev->bd_part->nr_sects>>3;
 }
 
@@ -51,7 +51,7 @@ sector_t rdfs_get_bdev_size(struct block_device* bdev)
 
 size_t rdfs_init_bdev(struct rdfs_sb_info *sbi,char* path,unsigned long * bdev_address)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct file_system_type **p;
 	struct bdev_des* bdev_p;
 	fmode_t mode;
@@ -77,7 +77,7 @@ size_t rdfs_init_bdev(struct rdfs_sb_info *sbi,char* path,unsigned long * bdev_a
 }
 struct numa_des* get_cpu_numa(void)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct rdfs_super_block * nsb = rdfs_get_super(RDFS_SUPER_BLOCK_ADDRESS);
 	if (nsb->s_numa_flag && ((1<<smp_processor_id())&NUMA_MASK))
 		return (struct numa_des*)nsb->s_numa_des[1];
@@ -139,7 +139,7 @@ void* rdfs_get_page(void)
 }
 void bdev_insert_a_page(unsigned long address)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	extern struct mm_struct init_mm;
 	pgd_t* pgd=pgd_offset(&init_mm,address);
 	pud_t* pud=pud_alloc(&init_mm,pgd,address);
@@ -153,7 +153,7 @@ void bdev_insert_a_page(unsigned long address)
 
 void print_pgtable(struct mm_struct* mm,unsigned long address)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	pgd_t* pgd;
 	pud_t* pud;
 	pmd_t* pmd;
@@ -234,7 +234,7 @@ EXPORT_SYMBOL(print_pgtable);
 
 void unexpected_do_fault(unsigned long address)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	extern struct mm_struct init_mm;
 	pgd_t* pgd_k;
 	pgd_t* pgd;
@@ -271,7 +271,7 @@ static void __rdfs_init_bdev_pool(struct bdev_des* bdev_des,unsigned long addres
 void rdfs_init_bdev_pool(struct super_block* sb)
 {
 	int i;
-	rdfs_trace();
+//	rdfs_trace();
 	extern struct mm_struct init_mm;
 	struct rdfs_sb_info* sbi = RDFS_SB(sb);
 	struct bdev_des* bdev_des = (struct bdev_des*)((unsigned long) sbi->virt_addr + RDFS_SB_SPACE+ADDRESS_TO_INO_SPACE);
@@ -296,7 +296,7 @@ unsigned long rdfs_get_bdev(unsigned long sbi_addr, void **data)
 	char *options = (char *) *data;
 	char *end;
 	char org_end;
-	rdfs_trace();
+//	rdfs_trace();
 	struct rdfs_sb_info *sbi = (struct rdfs_sb_info*)sbi_addr;
 	unsigned long bdev_address = (unsigned long)sbi->virt_addr+RDFS_SB_SPACE+ADDRESS_TO_INO_SPACE;
 	sbi->bdev_count = 0;
@@ -320,7 +320,7 @@ unsigned long rdfs_get_bdev(unsigned long sbi_addr, void **data)
 
 void rdfs_init_free_inode_list_offset(struct numa_des* numa_des_p)
 {
-	rdfs_trace();
+	//rdfs_trace();
     void *start_addr = rdfs_va(numa_des_p->free_inode_phy);
     unsigned int inode_count =  numa_des_p->free_inode_count;
     struct rdfs_inode *temp = NULL;
@@ -337,7 +337,7 @@ void rdfs_init_free_inode_list_offset(struct numa_des* numa_des_p)
 
 void rdfs_init_free_block_list_offset(struct numa_des* numa_des_p)
 {
-	rdfs_trace();
+	//rdfs_trace();
     unsigned long start_addr = numa_des_p->free_page_phy;
     unsigned long page_count = numa_des_p->free_page_count; 
     unsigned long *temp = (unsigned long*)rdfs_va(start_addr);
@@ -352,7 +352,7 @@ void rdfs_init_free_block_list_offset(struct numa_des* numa_des_p)
 
 int rdfs_init_numa(unsigned long start , unsigned long end , unsigned long percentage)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct numa_des * numa_des_p = (struct numa_des *) (rdfs_va(start));
 	if (end<start)
 		return -1;
@@ -379,7 +379,7 @@ static int next_numa_id = 0;
 
 struct numa_des* get_a_numa(void)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct rdfs_super_block * nsb = rdfs_get_super(RDFS_SUPER_BLOCK_ADDRESS);
 	if (nsb->s_numa_flag)
 	{
@@ -392,7 +392,7 @@ struct numa_des* get_a_numa(void)
 
 struct numa_des* get_rdfs_inode_numa(struct rdfs_inode* inode)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct rdfs_super_block * nsb = rdfs_get_super(RDFS_SUPER_BLOCK_ADDRESS);
 	if (nsb->s_numa_flag && (rdfs_pa(inode)>rdfs_NUMA_LINE))
 		return (struct numa_des*)nsb->s_numa_des[1];
@@ -455,7 +455,7 @@ unsigned long rdfs_count_free_blocks(struct super_block *sb)
 
 struct bdev_des* rdfs_alloc_bdev(unsigned long * bdev_id)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct rdfs_sb_info* sbi;
 	struct bdev_des* bdev_des;
 
@@ -467,7 +467,7 @@ struct bdev_des* rdfs_alloc_bdev(unsigned long * bdev_id)
 
 sector_t __rdfs_alloc_a_disk_block(struct bdev_des* bdev_des)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	int cpu_id = smp_processor_id();
 	unsigned long * virt_addr = NULL;
 	int count = 0 ;
@@ -538,13 +538,13 @@ sector_t __rdfs_alloc_a_disk_block(struct bdev_des* bdev_des)
 
 sector_t rdfs_alloc_a_disk_block(struct bdev_des* bdev_des)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	return __rdfs_alloc_a_disk_block(bdev_des);
 }
 
 static inline void free_into_pool(struct block_pool_per_cpu* block_pool,sector_t sn)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	unsigned long* virt_addr = block_pool->address;
 	unsigned long* capacity_addr;
 	if(block_pool->post>=block_pool->capacity)
@@ -558,7 +558,7 @@ static inline void free_into_pool(struct block_pool_per_cpu* block_pool,sector_t
 
 static unsigned long __rdfs_free_a_disk_block(struct bdev_des* bdev_des,sector_t sn)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	int cpu_id = smp_processor_id();
 	struct block_pool_per_cpu* block_pool = &bdev_des->block_pool[cpu_id];
 	struct block_pool_per_cpu* reserved_pool = &bdev_des->block_pool[CPU_NR];
@@ -583,7 +583,7 @@ static unsigned long __rdfs_free_a_disk_block(struct bdev_des* bdev_des,sector_t
 
 unsigned long rdfs_free_a_disk_block(struct bdev_des* bdev_des, sector_t sn)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	return __rdfs_free_a_disk_block(bdev_des,sn);
 }
 

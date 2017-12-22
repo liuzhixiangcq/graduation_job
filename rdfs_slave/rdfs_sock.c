@@ -59,9 +59,9 @@ int rdfs_sock_send_info(struct socket * sock,struct rdfs_context* ctx_p)
     int size;
     memset(message.m_data,0,MAX_MESSAGE_LENGTH);
     message.m_type =  SLAVE_CTX_TO_MASTER_INFO;
-    sprintf(message.m_data,"%016Lx:%u:%x:%x:%lx:%lx",ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,ctx_p->psn,ctx_p->lid,ctx_p->block_nums);
+    sprintf(message.m_data,"%016Lx:%u:%x:%x:%x:%lx",ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,ctx_p->psn,ctx_p->lid,ctx_p->block_nums);
     size = send_data(sock,&message,sizeof(message)); 
-    printk("%s --> send_data: %016Lx:%u:%x:%x:%x:%x",__FUNCTION__,ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,ctx_p->psn,ctx_p->lid,ctx_p->block_nums);
+    printk("%s --> send_data: dma_addr:%016Lx,rkey:%u,qpn:%x,psn:%x,lid:%x,block_nums:%lx\n",__FUNCTION__,ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,ctx_p->psn,ctx_p->lid,ctx_p->block_nums);
     return size;
 }
 
@@ -73,7 +73,7 @@ int rdfs_sock_get_info(struct socket * sock,struct rdfs_context* ctx_p)
     memset(message.m_data,0,MAX_MESSAGE_LENGTH);
     size = recv_data(sock,&message,sizeof(message)); 
     sscanf(message.m_data,"%016Lx:%u:%x:%x:%x",&ctx_p->rem_addr,&ctx_p->rem_rkey,&ctx_p->rem_qpn,&ctx_p->rem_psn,&ctx_p->rem_lid);
-    printk("%s --> receive_data: %016Lx:%u:%x:%x:%x",__FUNCTION__,ctx_p->rem_addr,ctx_p->rem_rkey,ctx_p->rem_qpn,ctx_p->rem_psn,ctx_p->rem_lid);
+    printk("%s --> receive_data: rem_addr:%016Lx,rkey:%u,qpn:%x,psn:%x,lid:%x",__FUNCTION__,ctx_p->rem_addr,ctx_p->rem_rkey,ctx_p->rem_qpn,ctx_p->rem_psn,ctx_p->rem_lid);
     return size;
 }
 

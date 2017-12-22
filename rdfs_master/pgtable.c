@@ -18,6 +18,7 @@
 #include "debug.h"
 #include "balloc.h"
 #include "memory.h"
+#include "rdfs_config.h"
 static inline pud_t *rdfs_pud_alloc_one(void)
 {
 	//rdfs_trace();
@@ -57,7 +58,7 @@ static inline void rdfs_pte_free(struct super_block *sb, pte_t *pte)
 
 int __rdfs_pmd_alloc(struct super_block *sb, pud_t *pud)
 {
-	rdfs_trace();
+//	rdfs_trace();
     pmd_t *new = rdfs_pmd_alloc_one();
     if (!new)
         {
@@ -76,7 +77,7 @@ int __rdfs_pmd_alloc(struct super_block *sb, pud_t *pud)
 
 int __rdfs_pte_alloc(struct super_block *sb, pmd_t *pmd)
 {
-	rdfs_trace();
+//	rdfs_trace();
     pte_t *new = rdfs_pte_alloc_one();
     if (!new)
         {
@@ -94,7 +95,7 @@ int __rdfs_pte_alloc(struct super_block *sb, pmd_t *pmd)
 }
 pud_t *rdfs_pud_alloc(struct super_block *sb, unsigned long ino, unsigned long offset)
 {
-	rdfs_trace();
+//	rdfs_trace();
     int i = 0;
     int nr = offset >> PUD_SHIFT;
     pud_t *pud = rdfs_get_pud(sb, ino);
@@ -106,7 +107,7 @@ pud_t *rdfs_pud_alloc(struct super_block *sb, unsigned long ino, unsigned long o
 
 pmd_t *rdfs_pmd_alloc(struct super_block *sb, pud_t *pud, unsigned long addr)
 {
-	rdfs_trace();
+//	rdfs_trace();
     if (addr >= RDFS_START && 
 		    addr + MAX_DIR_SIZE - 1 < RDFS_START + DIR_AREA_SIZE )
     {
@@ -120,14 +121,14 @@ pmd_t *rdfs_pmd_alloc(struct super_block *sb, pud_t *pud, unsigned long addr)
 
 pte_t *rdfs_pte_alloc(struct super_block *sb, pmd_t *pmd, unsigned long addr)
 {
-	rdfs_trace();
+//	rdfs_trace();
     return (unlikely(pmd_none(*pmd)) && __rdfs_pte_alloc(sb, pmd))?
         NULL: rdfs_pte_offset(pmd, addr);
 }
 
 int rdfs_init_pg_table(struct super_block * sb, u64 ino)
 {
-    rdfs_trace();
+//    rdfs_trace();
     pud_t *pud;
     pmd_t *pmd;
     pte_t *pte;
@@ -154,7 +155,7 @@ int rdfs_init_pg_table(struct super_block * sb, u64 ino)
 
 int rdfs_insert_page(struct super_block *sb, struct inode *vfs_inode, phys_addr_t phys)
 {
-    rdfs_trace();
+  //  rdfs_trace();
     unsigned long ino = 0;
     unsigned long addr = 0;
     unsigned long offset = 0;
@@ -199,7 +200,7 @@ int rdfs_insert_page(struct super_block *sb, struct inode *vfs_inode, phys_addr_
 
 void rdfs_rm_pte_range(struct super_block *sb, struct rdfs_inode* nv_i, pmd_t *pmd)
 {
-	rdfs_trace();
+//	rdfs_trace();
     pte_t *pte, *p;
     int cnt = 0;
     unsigned long phys;
@@ -231,7 +232,7 @@ void rdfs_rm_pte_range(struct super_block *sb, struct rdfs_inode* nv_i, pmd_t *p
 
 void rdfs_rm_pmd_range(struct super_block *sb,struct rdfs_inode* nv_i, pud_t *pud)
 {
-	rdfs_trace();
+//	rdfs_trace();
     pmd_t *pmd, *p;
     int cnt = 0;
 
@@ -252,7 +253,7 @@ void rdfs_rm_pmd_range(struct super_block *sb,struct rdfs_inode* nv_i, pud_t *pu
 
 void rdfs_rm_pg_table(struct super_block *sb, u64 ino)
 {
-	rdfs_trace();
+//	rdfs_trace();
     pud_t *pud, *p;
     struct rdfs_inode *ni;
     int cnt = 0;
@@ -361,9 +362,11 @@ int rdfs_destroy_mapping(struct inode *inode)
 
 int rdfs_search_metadata(struct rdfs_inode_info * ri_info,unsigned long offset,unsigned long *s_id,unsigned long *block_id)
 {
+    rdfs_trace();
+    printk("%s ri_info:%lx offset:%lx\n",__FUNCTION__,ri_info,offset);
     unsigned long pte_value = 0;
     pte_value = *(unsigned long *)(ri_info->i_virt_addr + offset);
-    *s_id = pte_value >> SLAVE_ID_SHIFT;
-    *block_id = pte_value & SLAVE_ID_MASK;
+    *s_id = (pte_value & SLAVE_ID_MASK) >> SLAVE_ID_SHIFT;
+    *block_id = (pte_value & BLOCK_ID_MASK) >> BLOCK_ID_SHIFT;
     return 0;
 }

@@ -11,7 +11,7 @@
 #include "memory.h"
 int rdfs_page_symlink(struct inode *inode, const char *symname, int len)
 {
-	rdfs_trace();
+	//rdfs_trace();
     struct rdfs_inode_info *ni_info;
     char *vaddr;
     int err;
@@ -31,7 +31,7 @@ int rdfs_page_symlink(struct inode *inode, const char *symname, int len)
 
 static int rdfs_readlink(struct dentry *dentry, char __user *buffer , int buflen)
 {
-	rdfs_trace();
+	//rdfs_trace();
     struct inode *inode = dentry->d_inode;
     struct rdfs_inode_info *ni;
     char *vaddr;

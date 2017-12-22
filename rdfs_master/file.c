@@ -51,14 +51,16 @@
 #include "pgtable.h"
 #include "rdfs_config.h"
 #include "memory.h"
+#include "balloc.h"
 #define CLEAN 1
 #define NO_CLEAN 0
 #define LOCK 1
 #define NO_LOCK 0
 #define iov_iter_rw(i)((0 ? (struct iov_iter*)0: (i))->type & RW_MASK)
 
-char * local_rw_buffer;
+//char * local_rw_buffer;
 unsigned long local_rw_addr;
+unsigned long global_phy_addr = RDFS_RW_BUFFER_PHY_ADDR;
 int flag = 0;
 
 int rdfs_init_local_rw_buffer(void)
@@ -66,16 +68,16 @@ int rdfs_init_local_rw_buffer(void)
 	if(flag)
 		return 0;
 	flag = 1;
-	local_rw_buffer = (char*)kmalloc(RDFS_BLOCK_SIZE,GFP_KERNEL);
-	local_rw_addr = rdfs_mapping_address(local_rw_buffer,RDFS_BLOCK_SIZE);
+	//rdfs_new_block(&global_phy_addr,1,NULL);
+	local_rw_addr = rdfs_mapping_address(__va(global_phy_addr),PAGE_SIZE);
 	return 0;
 }
-int rdfs_destroy_local_rw_buffer(void)
+int rdfs_destroy_local_rw_buffer(struct super_block * sb)
 {
 	if(!flag)
 		return 0;
 	flag = 0;
-	kfree(local_rw_buffer);
+	//rdfs_free_block(sb,global_phy_addr);
 	return 0;
 }
 extern void print_pgtable(struct mm_struct* mm,unsigned long address);
@@ -112,13 +114,14 @@ static int rdfs_open_file(struct inode *inode, struct file *filp)
 
 static int rdfs_release_file(struct file * file)
 {
+	return 0;
 	rdfs_trace();
         struct inode *inode = file->f_mapping->host;
 	struct rdfs_inode_info *ni_info;
 	unsigned long vaddr;
 	int err = 0;
 	struct rdfs_inode* ni = get_rdfs_inode(inode->i_sb,inode->i_ino);
-	rdfs_destroy_local_rw_buffer();
+	//rdfs_destroy_local_rw_buffer(inode->i_sb);
 	vaddr = (unsigned long)ni_info->i_virt_addr;
 	if(vaddr)
 	{
@@ -170,18 +173,26 @@ ssize_t rdfs_local_file_read(struct file *filp,char __user *buf,size_t length,lo
 	unsigned long i = 0,pte = 0,block_offset = 0;
 	unsigned long s_id = 0,block_id = 0;
 	unsigned long size = 0;
+	unsigned long rw_addr = local_rw_addr;
 	for(i=start;i<end;)
 	{
 		pte = i >> RDFS_BLOCK_SHIFT;
 		block_offset = i & RDFS_BLOCK_OFFSET_MASK;
 		i += RDFS_BLOCK_SIZE - block_offset;
 		size = RDFS_BLOCK_SIZE - block_offset;
+		if(i+size > end)
+			size = end - i;
 		retval = rdfs_search_metadata(ri_info,pte,&s_id,&block_id);
-		retval = rdfs_rdma_block_rw(local_rw_addr,s_id,block_id,block_offset,RDFS_READ);
-		copied += __copy_to_user(buf+copied,local_rw_buffer,size);
+		printk("%s rdfs_seach_metadata:s_id:%lx block_id:%lx block_offset:%lx size:%lx\n",__FUNCTION__,s_id,block_id,block_offset,size);
+		retval = rdfs_rdma_block_rw(rw_addr,s_id,block_id,block_offset,size,RDFS_READ);
+		rw_addr += retval;
+		//copied += __copy_to_user(buf+copied,rdfs_va(global_phy_addr),size);
+		printk("copied:%lx\n",copied);
 	}
+
+	copied = __copy_to_user(buf,__va(global_phy_addr),length);
 	*ppos = *ppos + length;
-	return length - copied;
+	return length;
 }
 
 ssize_t rdfs_local_file_write(struct file *filp,const char __user *buf,size_t length,loff_t *ppos)
@@ -213,22 +224,32 @@ ssize_t rdfs_local_file_write(struct file *filp,const char __user *buf,size_t le
 	unsigned long i = 0,pte = 0,block_offset = 0;
 	unsigned long s_id = 0,block_id = 0;
 	unsigned long size = 0,copied = 0;
+	unsigned long rw_addr = local_rw_addr;
+	copied = __copy_from_user(__va(global_phy_addr),buf,length);
 	for(i=start;i<end;)
 	{
-		pte = i >> RDFS_BLOCK_SHIFT;
+		pte = (i >> RDFS_BLOCK_SHIFT) << RDFS_BLOCK_SHIFT;
 		block_offset = i & RDFS_BLOCK_OFFSET_MASK;
 		i += RDFS_BLOCK_SIZE - block_offset;
 		size = RDFS_BLOCK_SIZE - block_offset;
-		retval = __copy_from_user(local_rw_buffer,buf,size);
+		if(i+size > end)
+			size = end - i;
 		retval = rdfs_search_metadata(ri_info,pte,&s_id,&block_id);
-		copied += rdfs_rdma_block_rw(local_rw_addr,s_id,block_id,block_offset,RDFS_WRITE);
+		printk("%s rdfs_seach_metadata:s_id:%lx block_id:%lx block_offset:%lx size:%lx\n",__FUNCTION__,s_id,block_id,block_offset,size);
+		//retval = rdfs_rdma_block_rw(rw_addr,s_id,block_id,block_offset,size,RDFS_WRITE);
+		retval = size;
+		rw_addr += retval;
+		
 	}
 	if(*ppos + length > i_size)
 	{	
 		i_size_write(inode, *ppos + length);
 	}
 	*ppos = *ppos + length;
-	return length - copied;
+	i_size_write(inode,*ppos);
+	printk("copyed :%lx\n",local_rw_addr - RDFS_RW_BUFFER_PHY_ADDR);
+	return length;
+	//return length - copied;
 }
 static int rdfs_check_flags(int flags)
 {

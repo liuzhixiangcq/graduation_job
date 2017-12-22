@@ -25,8 +25,8 @@
 #define SERVER_SOCK_LISTEN_NUMS 10
 #define MAX_SOCK_BUFFER  1000
 #define MAX_CLIENT_NUMS  10
-#define RDFS_READ 0
-#define RDFS_WRITE 1
+#define RDFS_READ IB_WR_RDMA_READ
+#define RDFS_WRITE IB_WR_RDMA_WRITE
 #define IB_ACCESS_PERMITS (IB_ACCESS_REMOTE_READ|IB_ACCESS_REMOTE_WRITE|IB_ACCESS_LOCAL_WRITE)
 #define MAX_PAGE_NUM 0x800000 //32GB / 4KB
 
@@ -112,5 +112,5 @@ int rdfs_rmalloc(struct rdfs_remote_memory *rrm);
 int rdfs_rmfree(struct rdfs_remote_memory *rrm, int page_num);
 int rdfs_get_rm_free_page_num(struct rdfs_remote_memory *rrm);
 //unsigned long dmfs_block_rw(u64 req_id,int client_idx,unsigned long start_addr,int rw,unsigned long size,phys_addr_t phys);
-unsigned long rdfs_rdma_block_rw(unsigned long local_phy_addr,unsigned long s_id,unsigned long block_id,unsigned long block_offset,int rw_flag);
+unsigned long rdfs_rdma_block_rw(unsigned long local_phy_addr,unsigned long s_id,unsigned long block_id,unsigned long block_offset,unsigned long size,int rw_flag);
 #endif

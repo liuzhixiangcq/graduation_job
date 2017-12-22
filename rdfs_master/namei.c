@@ -27,7 +27,7 @@ extern struct file_operations rdfs_dir_operations;
 
 static inline int rdfs_add_nondir(struct dentry *dentry, struct inode *inode)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	int err = 0;
 
 	err = rdfs_add_link(dentry, inode);
@@ -45,7 +45,7 @@ static inline int rdfs_add_nondir(struct dentry *dentry, struct inode *inode)
 
 static struct dentry *rdfs_lookup(struct inode *dir,struct dentry *dentry,unsigned int flags)
 {
-	rdfs_trace();
+//	rdfs_trace();
     struct inode *inode;
     ino_t ino;
 
@@ -72,7 +72,7 @@ static struct dentry *rdfs_lookup(struct inode *dir,struct dentry *dentry,unsign
 
 static int rdfs_create(struct inode *dir, struct dentry *dentry, umode_t mode, bool excl)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct inode *inode;
 	int err = 0;
 
@@ -104,7 +104,7 @@ static int rdfs_create(struct inode *dir, struct dentry *dentry, umode_t mode, b
 
 static int rdfs_tmpfile(struct inode *dir, struct dentry *dentry, umode_t mode)
 { 
-	rdfs_trace();
+	//rdfs_trace();
 	struct inode *inode = rdfs_new_inode(dir, mode, NULL);
 	if(IS_ERR(inode))
 		{
@@ -127,7 +127,7 @@ static int rdfs_tmpfile(struct inode *dir, struct dentry *dentry, umode_t mode)
 
 static int rdfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, dev_t rdev)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct inode *inode;
 	int err;
 	if(!new_valid_dev(rdev))
@@ -151,7 +151,7 @@ static int rdfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, de
 
 static int rdfs_symlink(struct inode *dir, struct dentry *dentry,const char *symname)
 {
-	rdfs_trace();
+//	rdfs_trace();
     struct super_block *sb = dir->i_sb;
     int err = -ENAMETOOLONG;
     unsigned l = strlen(symname);
@@ -202,7 +202,7 @@ static int rdfs_symlink(struct inode *dir, struct dentry *dentry,const char *sym
 
 static int rdfs_link(struct dentry * old_entry, struct inode *dir,struct dentry *dentry)
 {
-	rdfs_trace();
+	//rdfs_trace();
     struct inode *inode = old_entry->d_inode;
     int err;
 
@@ -228,7 +228,7 @@ static int rdfs_link(struct dentry * old_entry, struct inode *dir,struct dentry 
 
 static int rdfs_unlink(struct inode *dir, struct dentry *dentry)
 {
-	rdfs_trace();
+	//rdfs_trace();
     struct inode *inode = dentry->d_inode;
     struct rdfs_dir_entry *de;
     struct rdfs_dir_entry *pde;
@@ -280,7 +280,7 @@ const struct inode_operations rdfs_dir_inode_operations =
 };
 static int rdfs_mkdir(struct inode *dir,struct dentry *dentry,umode_t mode)
 {
-	rdfs_trace();
+	//rdfs_trace();
     struct inode *inode;
     int err;
     
@@ -336,7 +336,7 @@ static int rdfs_mkdir(struct inode *dir,struct dentry *dentry,umode_t mode)
 
 static int rdfs_rmdir(struct inode *dir,struct dentry *dentry)
 {
-	rdfs_trace();
+	//rdfs_trace();
     struct inode *inode = dentry->d_inode;
     int err = -ENOTEMPTY;
 
@@ -357,7 +357,7 @@ static int rdfs_rmdir(struct inode *dir,struct dentry *dentry)
 
 static int rdfs_rename(struct inode *old_dir, struct dentry *old_dentry,struct inode *new_dir, struct dentry *new_dentry)
 {
-	rdfs_trace();
+	//rdfs_trace();
     struct inode *old_inode = old_dentry->d_inode;
     struct inode *new_inode = new_dentry->d_inode;
     struct rdfs_dir_entry *dir_de = NULL;

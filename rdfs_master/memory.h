@@ -36,8 +36,7 @@
   #define ALLOC_PAGE 1
   #define ALLOC_PTE  2
 
-  #define SLAVE_ID_SHIFT 51
-  #define SLAVE_ID_MASK  0x000fffffffffffff
+  
 
   struct slave_info
   {

@@ -55,7 +55,7 @@ static inline int rdfs_match(int len,const char* const name,struct rdfs_dir_entr
 
 static inline struct rdfs_dir_entry * rdfs_next_entry(struct rdfs_dir_entry *p)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	return (struct rdfs_dir_entry *)((char *)p + cpu_to_le16(p->rec_len));
 
 }
@@ -64,7 +64,7 @@ static inline struct rdfs_dir_entry * rdfs_next_entry(struct rdfs_dir_entry *p)
 
 static int rdfs_readdir(struct file *file, struct dir_context *ctx)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	loff_t pos = ctx->pos;
 	int err = 0;
 	struct inode *inode = file_inode(file);
@@ -120,7 +120,7 @@ final:
 
 struct rdfs_dir_entry *rdfs_find_entry2(struct inode *dir, struct qstr *child, struct rdfs_dir_entry **up_nde)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	const char *name = child->name;
 	int namelen = child->len;
 	unsigned long  n = i_size_read(dir);
@@ -161,7 +161,7 @@ found:
 
 ino_t rdfs_inode_by_name(struct inode *dir,struct qstr *child)
 {
-	rdfs_trace();
+//	rdfs_trace();
     ino_t res = 0;
     struct rdfs_dir_entry *de;
     struct rdfs_dir_entry *nouse = NULL;
@@ -177,14 +177,14 @@ ino_t rdfs_inode_by_name(struct inode *dir,struct qstr *child)
 
 static inline void rdfs_set_de_type(struct rdfs_dir_entry *de,struct inode *inode)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	umode_t mode = inode->i_mode;
 	de->file_type = rdfs_type_by_mode[(mode & S_IFMT) >> S_SHIFT];
 }
 
 void rdfs_set_link(struct inode *dir, struct rdfs_dir_entry *de, struct inode *inode,int update_times)
 {
-	rdfs_trace();
+//	rdfs_trace();
     de->inode = cpu_to_le64(inode->i_ino);
     rdfs_set_de_type(de, inode);
     if(likely(update_times))
@@ -195,7 +195,7 @@ void rdfs_set_link(struct inode *dir, struct rdfs_dir_entry *de, struct inode *i
 
 int rdfs_add_link(struct dentry *dentry,struct inode *inode)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct inode *dir = dentry->d_parent->d_inode;
 	const char *name = dentry->d_name.name;
     int namelen = dentry->d_name.len;
@@ -305,7 +305,7 @@ out:
 
 int rdfs_delete_entry(struct rdfs_dir_entry *dir,struct rdfs_dir_entry **pdir,struct inode *parent)
 {
-	rdfs_trace();
+//	rdfs_trace();
     unsigned short rec_len = 0;
     unsigned short temp;
     struct rdfs_dir_entry *prev;
@@ -334,7 +334,7 @@ int rdfs_delete_entry(struct rdfs_dir_entry *dir,struct rdfs_dir_entry **pdir,st
 
 int rdfs_make_empty(struct inode *inode,struct inode *parent)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct rdfs_inode_info *ni;
 	struct rdfs_dir_entry *de;
 	void *vaddr;
@@ -406,7 +406,7 @@ fail:
 
 struct rdfs_dir_entry *rdfs_dotdot(struct inode *dir)
 {
-	rdfs_trace();
+	//rdfs_trace();
     struct rdfs_dir_entry *de = NULL;
     struct rdfs_inode_info *ni = RDFS_I(dir);
     void *vaddr = NULL;
@@ -419,7 +419,7 @@ struct rdfs_dir_entry *rdfs_dotdot(struct inode *dir)
 
 int rdfs_empty_dir(struct inode *inode)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct rdfs_inode_info *ni;
     struct rdfs_dir_entry *de;
     unsigned long size = le64_to_cpu(inode->i_size);

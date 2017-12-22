@@ -37,20 +37,22 @@
      global_ib_dev = dev;
      INIT_IB_EVENT_HANDLER(&ieh,dev,async_event_handler);
      ib_register_event_handler(&ieh);
-
+     printk("%s register_service master_ip:%s port:%d\n",__FUNCTION__,master_ip,slave_register_port);
      retval = rdfs_init_slave_register_service(master_ip,slave_register_port,dev);
      if(retval)
      {
          //rdfs_debug_msg(__FUNCTION__,"rdfs_init_slave_register_service failed");
          return;
      }
-     
+     printk("%s init register service success\n",__FUNCTION__);
+     printk("%s request_service master_ip:%s port:%d\n",__FUNCTION__,master_ip,client_request_port);
      retval = rdfs_init_client_request_service(master_ip,client_request_port,dev);
      if(retval)
      {
          //rdfs_debug_msg(__FUNCTION__,"rdfs_init_client_request_service failed");
          return;
      }
+     printk("%s init client request service success\n",__FUNCTION__);
      return ;
  }
  static void rdfs_remove_device(struct ib_device* dev)

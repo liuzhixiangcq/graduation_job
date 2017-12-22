@@ -108,6 +108,5 @@
      ctx_p->req_id.current_req_id = 0;
      ctx_p->req_id.lock_word = 0;
      spin_lock_init(&ctx_p->req_id.req_id_lock);
-         
      return ctx_p;
  }

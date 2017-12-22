@@ -15,7 +15,7 @@
 
 static inline int rdfs_acl_count(size_t size)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	ssize_t s;
 	size -= sizeof(struct rdfs_acl_header);
 	s = size - 4 * sizeof(struct rdfs_acl_entry_short);
@@ -33,7 +33,7 @@ static inline int rdfs_acl_count(size_t size)
 }
 static struct posix_acl *rdfs_acl_load(const void *value, size_t size)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	const char *end = (char *)value + size;
 	int n, count;
 	struct posix_acl *acl;
@@ -115,7 +115,7 @@ fail:
 }
 static inline size_t rdfs_acl_size(int count)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	if (count <= 4) {
 		return sizeof(struct rdfs_acl_header) +
 		       count * sizeof(struct rdfs_acl_entry_short);
@@ -127,7 +127,7 @@ static inline size_t rdfs_acl_size(int count)
 }
 static void *rdfs_acl_save(const struct posix_acl *acl, size_t *size)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct rdfs_acl_header *ext_acl;
 	char *e;
 	size_t n;
@@ -178,7 +178,7 @@ fail:
 
 struct posix_acl *rdfs_get_acl(struct inode *inode, int type)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	int name_index;
 	char *value = NULL;
 	struct posix_acl *acl;
@@ -238,7 +238,7 @@ struct posix_acl *rdfs_get_acl(struct inode *inode, int type)
 
 static int rdfs_set_acl(struct inode *inode, int type, struct posix_acl *acl)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	int name_index;
 	void *value = NULL;
 	size_t size = 0;
@@ -298,7 +298,7 @@ static int rdfs_set_acl(struct inode *inode, int type, struct posix_acl *acl)
 
 int rdfs_init_acl(struct inode *inode, struct inode *dir)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct posix_acl *acl = NULL;
 	int error = 0;
 
@@ -341,7 +341,7 @@ cleanup:
 
 int rdfs_acl_chmod(struct inode *inode)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct posix_acl *acl;
 	int error=0;
 
@@ -368,7 +368,7 @@ int rdfs_acl_chmod(struct inode *inode)
 
 static size_t rdfs_xattr_list_acl_access(struct dentry *dentry, char *list,size_t list_size, const char *name,size_t name_len, int type)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	const size_t size = sizeof(POSIX_ACL_XATTR_ACCESS);
 
 	if (!test_opt(dentry->d_sb, POSIX_ACL))
@@ -380,7 +380,7 @@ static size_t rdfs_xattr_list_acl_access(struct dentry *dentry, char *list,size_
 
 static size_t rdfs_xattr_list_acl_default(struct dentry *dentry, char *list,size_t list_size, const char *name,size_t name_len, int type)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	const size_t size = sizeof(POSIX_ACL_XATTR_DEFAULT);
 
 	if (!test_opt(dentry->d_sb, POSIX_ACL))
@@ -392,7 +392,7 @@ static size_t rdfs_xattr_list_acl_default(struct dentry *dentry, char *list,size
 
 static int rdfs_xattr_get_acl(struct dentry *dentry, const char *name, void *buffer, size_t size, int type)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct posix_acl *acl;
 	int error;
 
@@ -425,7 +425,7 @@ static int rdfs_xattr_get_acl(struct dentry *dentry, const char *name, void *buf
 
 static int rdfs_xattr_set_acl(struct dentry *dentry, const char *name,const void *value, size_t size, int flags,int type)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct posix_acl *acl;
 	int error;
 

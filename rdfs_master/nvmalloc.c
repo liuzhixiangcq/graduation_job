@@ -50,7 +50,7 @@ static DEFINE_SPINLOCK(list_lock);
 
 void *nvmalloc(const int mode)
 {
-	rdfs_trace();
+//	rdfs_trace();
     struct nvm_struct *p;
     struct nvm_struct *free_list, *used_list;
     int *used_cnt, *free_cnt;
@@ -113,7 +113,7 @@ out:
 
 void nvfree(const void *addr)
 {
-	rdfs_trace();
+//	rdfs_trace();
     struct nvm_struct *p;
     struct nvm_struct *pre;
     struct nvm_struct *free_list, *used_list;
@@ -214,7 +214,7 @@ out:
 
 void print_free_list(int mode)
 {
-    rdfs_trace();
+ //   rdfs_trace();
     struct nvm_struct *p = NULL;
     if (mode == 0)
         p = reg_free_list;
@@ -229,7 +229,7 @@ void print_free_list(int mode)
 
 void print_used_list(int mode)
 {
-    rdfs_trace();
+//    rdfs_trace();
     struct nvm_struct *p = NULL;
     if(mode == 0)
         p = reg_used_list;
@@ -246,7 +246,7 @@ void print_used_list(int mode)
 
 int nvmap_pmd(struct super_block* sb, const unsigned long addr, pmd_t *ppmd, struct mm_struct *mm)
 {
-    rdfs_trace();
+ //   rdfs_trace();
     pgd_t *pgd;
     pud_t *pud;
 	printk("%s\n",__FUNCTION__);
@@ -268,7 +268,7 @@ int nvmap_pmd(struct super_block* sb, const unsigned long addr, pmd_t *ppmd, str
 
 int nvmap_dir(struct super_block* sb, unsigned long addr, pud_t *ppud, struct mm_struct *mm)
 {
-	rdfs_trace();
+//	rdfs_trace();
     unsigned long end = addr + MAX_DIR_SIZE - 1;
     pgd_t *pgd;
     pud_t *pud;
@@ -298,7 +298,7 @@ int nvmap_dir(struct super_block* sb, unsigned long addr, pud_t *ppud, struct mm
 
 int nvmap_file(struct super_block* sb, unsigned long addr, pud_t *ppud, struct mm_struct *mm)
 {
-	rdfs_trace();
+//	rdfs_trace();
     unsigned long end = addr + MAX_FILE_SIZE - 1;
     pgd_t *pgd;
     pud_t *pud;
@@ -337,7 +337,7 @@ int nvmap_file(struct super_block* sb, unsigned long addr, pud_t *ppud, struct m
 
 int nvmap(struct super_block* sb, unsigned long addr, pud_t *ppud, struct mm_struct *mm)
 {
-	rdfs_trace();
+//	rdfs_trace();
     if (!addr || ppud == NULL) {
         printk(KERN_WARNING "nvmap: null pointer error.\n");
         return -1;
@@ -364,7 +364,7 @@ int nvmap(struct super_block* sb, unsigned long addr, pud_t *ppud, struct mm_str
 
 int unnvmap_file(unsigned long addr, pud_t *ppud, struct mm_struct *mm)
 {
-	rdfs_trace();
+//	rdfs_trace();
     unsigned long end = addr + MAX_FILE_SIZE - 1;
     pgd_t *pgd;
     pud_t *pud;
@@ -403,7 +403,7 @@ int unnvmap_file(unsigned long addr, pud_t *ppud, struct mm_struct *mm)
 
 int unnvmap_dir(unsigned long addr, struct mm_struct *mm)
 {
-	rdfs_trace();
+//	rdfs_trace();
     pgd_t *pgd;
     pud_t *pud;
     pmd_t *pmd;
@@ -432,7 +432,7 @@ int unnvmap_dir(unsigned long addr, struct mm_struct *mm)
 }
 int unnvmap(unsigned long addr, pud_t *ppud, struct mm_struct* mm)
 {
-	rdfs_trace();
+//	rdfs_trace();
     if(ppud == NULL)
 	return 0;
 

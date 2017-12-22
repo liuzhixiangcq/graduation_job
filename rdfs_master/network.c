@@ -89,6 +89,8 @@
         case MASTER_CTX_INFO:
             sprintf(message.m_data,"%016Lx:%u:%x:%x:%x",ctx_p->dma_addr,ctx_p->rkey,
             ctx_p->qpn,ctx_p->psn,ctx_p->lid);
+            printk("%s dma_addr:%lx rkey:%u qpn:%x psn:%x lid:%x\n",__FUNCTION__,ctx_p->dma_addr,ctx_p->rkey,
+            ctx_p->qpn,ctx_p->psn,ctx_p->lid);
             break;
         case SLAVE_CTX_TO_MASTER_INFO:
              sprintf(message.m_data,"%016Lx:%u:%x:%x:%lx:%lx",ctx_p->dma_addr,ctx_p->rkey,ctx_p->qpn,
@@ -113,15 +115,19 @@
     switch(message.m_type)
     {
         case MASTER_CTX_INFO:
-             sscanf(message.m_data,"%016Lx:%u:%x:%x:%x",&ctx_p->rem_addr,&ctx_p->rem_rkey,&ctx_p->rem_qpn,
+             sscanf(message.m_data,"%016Lx:%u:%x:%x:%lx",&ctx_p->rem_addr,&ctx_p->rem_rkey,&ctx_p->rem_qpn,
              &ctx_p->rem_psn,&ctx_p->rem_lid);
+             printk("%s rem_addr:%lx rem_rkey:%lx rem_qpn:%lx rem_psn:%lx,rem_lid:%lx\n",__FUNCTION__,ctx_p->rem_addr,
+             ctx_p->rem_rkey,ctx_p->rem_qpn,ctx_p->rem_lid);
              break;
         case SLAVE_CTX_TO_MASTER_INFO:
-             sscanf(message.m_data,"%016Lx:%u:%x:%x:%x:%x",&ctx_p->rem_addr,&ctx_p->rem_rkey,
+             sscanf(message.m_data,"%016Lx:%u:%x:%x:%x:%lx",&ctx_p->rem_addr,&ctx_p->rem_rkey,
              &ctx_p->rem_qpn,&ctx_p->rem_psn,&ctx_p->rem_lid,&ctx_p->rem_block_nums);
+             printk("%s slave_ctx_to_master_info:rem_addr:%lx,rem_rkey:%u,rem_qpn:%x,rem_psn:%x,rem_lid:%x,block_nums:%lx\n",__FUNCTION__,ctx_p->rem_addr,
+             ctx_p->rem_rkey,ctx_p->rem_qpn,ctx_p->rem_psn,ctx_p->rem_lid,ctx_p->rem_block_nums);
              break;
         case CLIENT_CTX_INFO:
-             sscanf(message.m_data,"%016Lx:%u:%x:%x:%x:%x",&ctx_p->rem_addr,&ctx_p->rem_rkey,
+             sscanf(message.m_data,"%016Lx:%u:%x:%x:%x:%lx",&ctx_p->rem_addr,&ctx_p->rem_rkey,
              &ctx_p->rem_qpn,&ctx_p->rem_psn,&ctx_p->rem_lid);
              break;
         default:
