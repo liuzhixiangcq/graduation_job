@@ -49,7 +49,10 @@ void comp_handler_send(struct ib_cq* cq,void *cq_context)
                 s_id = req_word >> SLAVE_ID_SHIFT;
                 req_id = req_word & REQ_ID_MASK;
                 printk("s_id:%lx req_id:%lx lock_world:%lx\n",s_id,req_id,(slave_ctx[s_id]->req_id).lock_word);
-                clear_bit_unlock(req_id,slave_ctx[s_id]->req_id.lock_word);
+                clear_bit_unlock(req_id,&(slave_ctx[s_id]->req_id.lock_word));
+                printk("lock_world:%lx\n",(slave_ctx[s_id]->req_id.lock_word));
+                wake_up_bit(&(slave_ctx[s_id]->req_id.lock_word),req_id);
+                printk("lock_world:%lx\n",(slave_ctx[s_id]->req_id.lock_word));
             }
             else
             {
@@ -131,15 +134,15 @@ unsigned long rdfs_rdma_block_rw(unsigned long local_phy_addr,unsigned long s_id
     struct ib_send_wr wr;
     struct ib_sge sg;
     struct ib_send_wr * bad_wr;
-    printk("%s 1\n",__FUNCTION__);
+    //printk("%s 1\n",__FUNCTION__);
     unsigned long remote_phy_addr = slave_ctx[s_id]->rem_addr + block_id * RDFS_BLOCK_SIZE + block_offset;
     
     memset(&sg,0,sizeof(sg));
     sg.addr = (uintptr_t)local_phy_addr;
     sg.length = size;
     sg.lkey = slave_ctx[s_id]->mr->lkey;
-
-    printk("%s 2\n",__FUNCTION__);
+    printk("lock_world:%lx\n",(slave_ctx[s_id]->req_id.lock_word));
+    //printk("%s 2\n",__FUNCTION__);
     spin_lock(&(slave_ctx[s_id]->req_id.req_id_lock));
     u64 req_id = slave_ctx[s_id]->req_id.current_req_id;
     slave_ctx[s_id]->req_id.current_req_id = (slave_ctx[s_id]->req_id.current_req_id+1)%64;
@@ -147,16 +150,17 @@ unsigned long rdfs_rdma_block_rw(unsigned long local_phy_addr,unsigned long s_id
     set_bit(req_id,&slave_ctx[s_id]->req_id.lock_word);
 
     memset(&wr,0,sizeof(struct ib_send_wr));
-    printk("%s 3\n",__FUNCTION__);
-    wr.wr_id = (s_id << SLAVE_ID_SHIFT) & req_id;
+   // printk("%s 3\n",__FUNCTION__);
+    u64 wr_id = (s_id << SLAVE_ID_SHIFT) | req_id;
+    wr.wr_id = wr_id;
     wr.sg_list = &sg;
     wr.num_sge = 1;
     wr.opcode = rw_flag;
     wr.send_flags = IB_SEND_SIGNALED;
     wr.wr.rdma.remote_addr = remote_phy_addr;
     wr.wr.rdma.rkey = slave_ctx[s_id]->rem_rkey;
-    printk("%s 4\n",__FUNCTION__);
-    printk("%s s_id:%lx req_id:%lx remote_addr:%lx local_addr:%lx lock_world:%lx\n",__FUNCTION__,s_id,req_id,remote_phy_addr,local_phy_addr,slave_ctx[s_id]->req_id.lock_word);
+    //printk("%s 4\n",__FUNCTION__);
+    printk("%s wr_id:%lx s_id:%lx req_id:%lx remote_addr:%lx local_addr:%lx lock_world:%lx\n",__FUNCTION__,wr_id,s_id,req_id,remote_phy_addr,local_phy_addr,slave_ctx[s_id]->req_id.lock_word);
     if(ib_post_send(slave_ctx[s_id]->qp,&wr,&bad_wr))
     {
         return -1;
