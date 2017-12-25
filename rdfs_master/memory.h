@@ -42,6 +42,10 @@
   {
      struct rdfs_context * ctx;
      struct ib_device * dev ;
+     
+     unsigned int ip;
+     int client_register_port;
+
      int slave_id;
      int status;
 

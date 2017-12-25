@@ -25,15 +25,123 @@
  #include "network.h"
  #include "rdfs_config.h"
  #include "rdfs_rdma.h"
+ #include "master_service.h"
  struct task_struct * rdfs_slave_register_service;
  struct task_struct * rdfs_client_request_service;
+ struct task_struct * rdfs_jobs[RDFS_PROCESS_JOBS];
+
  static int slave_register_service_stop_flag = 0;
  static int client_request_service_stop_flag = 0;
  
  struct slave_info slave_infos[MAX_SLAVE_NUMS];
  struct rdfs_context * slave_ctx[MAX_SLAVE_NUMS];
+
  static int slave_id = 0;
 
+ struct client_task  client_request_task_list;
+
+ int rdfs_init_job_service(void)
+ {
+    rdfs_trace();
+    client_request_task_list.task_list = NULL;
+    spin_lock_init(&client_request_task_list.task_list_lock);
+    rdfs_init_jobs();
+ }
+ int rdfs_init_jobs(void)
+ {
+    int i;
+    rdfs_trace();
+    for(i=0;i<RDFS_PROCESS_JOBS;i++)
+    {
+        rdfs_jobs[i] = kthread_run(rdfs_process_task,NULL,"rdfs jobs");
+    }
+    return 0;
+ }
+ int rdfs_destroy_jobs(void)
+ {
+
+     return 0;
+ }
+ int rdfs_add_task(struct client_request_task * task)
+ {
+   // struct client_request_task * tmp = NULL;
+    spin_lock(&client_request_task_list.task_list_lock);
+    if(client_request_task_list.task_list == NULL)
+        client_request_task_list.task_list;
+    else
+    {
+        task->next = client_request_task_list.task_list;
+        client_request_task_list.task_list = task;
+    }
+    spin_unlock(&client_request_task_list.task_list_lock);
+    return 0;
+ }
+
+ struct client_request_task* rdfs_remove_task(void)
+ {
+    struct client_request_task * tmp = NULL;
+    spin_lock(&client_request_task_list.task_list_lock);
+    if(client_request_task_list.task_list == NULL)
+    {
+            printk("%s do't have jobs\n",__FUNCTION__);
+            return NULL;
+    }
+    else
+    {
+        tmp = client_request_task_list.task_list;
+        client_request_task_list.task_list = tmp->next;
+        tmp->next = NULL;
+    }
+    spin_unlock(&client_request_task_list.task_list_lock);
+    return tmp;
+ }
+ int rdfs_search_slave_info(struct socket *sock)
+ {
+    rdfs_trace();
+    struct rdfs_message message;
+    int size = 0;
+    memset(message.m_data,0,MAX_MESSAGE_LENGTH);
+    message.m_type = CLIENT_SERACH_SLAVE_INFO;
+    int cnt = slave_id;
+    int i = 0;
+    int t = cnt;
+    for(i=0;i<cnt;i++)
+    {
+        sprintf(message.m_data,"%u:%u:%u:%u",t--,slave_infos[i].slave_id,slave_infos[i].ip,slave_infos[i].client_register_port);
+        size = send_data(sock,&message,sizeof(message));
+    }
+    return 0;
+ }
+ static int rdfs_process_task(void *arg)
+ {
+     rdfs_trace();
+     struct client_request_task * task = NULL;
+     int m_type;
+     while(1)
+     {
+         task = rdfs_remove_task();
+         if(task == NULL)
+         {
+             msleep(TASK_SLEEP_TIME);
+             continue;
+         }
+         m_type = task->message->m_type;
+         switch(m_type)
+         {
+             case CLIENT_SERACH_SLAVE_INFO:
+                rdfs_search_slave_info(task->c_sock);
+                task->c_sock = NULL;
+                task->next = NULL;
+                kfree(task->message);
+                kfree(task);
+                break;
+             default:
+             break;
+         }
+
+     }
+     return 0;
+ }
  static int rdfs_process_register(struct service_info* s_info)
  {
     rdfs_trace();
@@ -54,6 +162,8 @@
     
     
     slave_infos[slave_id].slave_id = slave_id;
+    slave_infos[slave_id].ip = in_aton("192.168.0.3");
+    slave_infos[slave_id].client_register_port = CLIENT_REGISTER_SLAVE_PORT;
     slave_infos[slave_id].ctx = ctx_p;
     slave_infos[slave_id].dev = s_info->ib_dev;
     slave_infos[slave_id].status = SLAVE_ALIVE;
@@ -71,8 +181,20 @@
     slave->status = SLAVE_REMOVED;
     return 0;
  }
- static int rdfs_process_request(struct host_info* host_p)
+ static int rdfs_process_request(struct service_info* s_info)
  {
+    rdfs_trace();
+    struct rdfs_message *m_info = NULL;
+    struct client_request_task * task = NULL;
+    task = (struct client_request_task*)kmalloc(sizeof(struct client_request_task),GFP_KERNEL);
+    m_info = (struct rdfs_message*)kmalloc(sizeof(struct rdfs_message),GFP_KERNEL);
+    int size = 0;
+    memset(m_info->m_data,0,MAX_MESSAGE_LENGTH);
+    size = recv_data(s_info->sock.c_sock,m_info,sizeof(struct rdfs_message));
+    task->message = m_info;
+    task->next = NULL;
+    task->c_sock = s_info->sock.c_sock;
+    rdfs_add_task(task);
     return 0;
  }
  static int rdfs_init_service(void * arg)

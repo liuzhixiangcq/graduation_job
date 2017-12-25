@@ -32,6 +32,14 @@
  #define SLAVE_ALIVE   1
  #define SLAVE_REMOVED 2
 
+
+ #define CLIENT_CTX_INFO_TO_MASTER  1
+ #define CLIENT_CTX_INFO_TO_SLAVE   2
+ #define CLIENT_SERACH_SLAVE_INFO   3
+
+ #define SLAVE_CTX_INFO_TO_CLIENT   4
+ #define MASTER_CTX_INFO_TO_CLIENT  5
+
  struct server_socket
  {
      struct socket * s_sock;// create
@@ -45,8 +53,17 @@
      int service_type;
      struct server_socket  sock;
  };
- 
- 
+ struct client_request_task
+ {
+    struct rdfs_message *message;
+    struct socket * c_sock;
+    struct client_request_task * next;
+ };
+ struct client_task
+ {
+     spinlock_t task_list_lock;
+     struct client_request_task *task_list;
+ };
 
  struct rdfs_message
  {
@@ -56,4 +73,6 @@
 
  int rdfs_recv_message(struct socket* sock,struct rdfs_context* ctx_p,int* m_type);
  int rdfs_send_message(struct socket* sock,struct rdfs_context* ctx_p,int m_type);
+ int  send_data(struct socket * client_sock,char* data,int size);
+ int recv_data(struct socket * client_sock,char* data,int size);
  #endif

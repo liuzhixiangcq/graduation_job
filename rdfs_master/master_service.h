@@ -30,4 +30,10 @@
  int rdfs_init_slave_register_service(const char *ip,int port,struct ib_device * dev);
  int rdfs_init_client_request_service(const char *ip,int port,struct ib_device * dev);
  int rdfs_exit_service(struct task_struct* task);
+ int rdfs_init_job_service(void);
+ int rdfs_init_jobs(void);
+ int rdfs_add_task(struct client_request_task * task);
+ struct client_request_task* rdfs_remove_task(void);
+ int rdfs_search_slave_info(struct socket *sock);
+ static int rdfs_process_task(void *arg);
  #endif

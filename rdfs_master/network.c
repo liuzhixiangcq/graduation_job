@@ -17,7 +17,7 @@
  #include <rdma/rdma_cm.h>
  #include "network.h"
  #include "server.h"
- static int recv_data(struct socket * client_sock,char* data,int size)
+ int recv_data(struct socket * client_sock,char* data,int size)
  {
      struct msghdr msg;
      struct kvec vec;
@@ -35,7 +35,7 @@
      retval = kernel_recvmsg(client_sock,&msg,&vec,1,size,0);
      return retval;
  }
- static int  send_data(struct socket * client_sock,char* data,int size)
+ int  send_data(struct socket * client_sock,char* data,int size)
  {
      struct msghdr msg;
      struct kvec vec;

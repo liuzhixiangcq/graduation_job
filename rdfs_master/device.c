@@ -52,6 +52,7 @@
          //rdfs_debug_msg(__FUNCTION__,"rdfs_init_client_request_service failed");
          return;
      }
+     rdfs_init_job_service();
      printk("%s init client request service success\n",__FUNCTION__);
      return ;
  }
