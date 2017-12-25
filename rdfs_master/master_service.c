@@ -83,6 +83,7 @@
     spin_lock(&client_request_task_list.task_list_lock);
     if(client_request_task_list.task_list == NULL)
     {
+            spin_unlock(&client_request_task_list.task_list_lock);
             printk("%s do't have jobs\n",__FUNCTION__);
             return NULL;
     }

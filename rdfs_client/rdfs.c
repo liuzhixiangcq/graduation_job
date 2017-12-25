@@ -16,7 +16,7 @@ int rdfsConnect(const char* host, int port)
 	}
 	int m_type;
 	rdfs_send_message(master_sock_fd,client_ctx,CLIENT_SERACH_SLAVE_INFO);
-	//int m_type;
+	
 	rdfs_recv_message(master_sock_fd,client_ctx,&m_type);
 
 	return master_sock_fd ;
