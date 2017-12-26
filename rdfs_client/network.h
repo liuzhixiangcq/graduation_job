@@ -66,6 +66,14 @@
      int m_type;
      char m_data[MAX_MESSAGE_LENGTH];
   };
+  enum RDFS_CLIENT_REQUEST
+  {
+      RDFS_CLIENT_OPEN,
+      RDFS_CLIENT_CLOSE,
+      RDFS_CLIENT_MKDIR,
+      RDFS_CLIENT_RMDIR,
+      RDFS_CLIENT_LISTDIR
+  };
   int rdfs_connect(unsigned int ip,int port);
   int rdfs_send_message(int sock_fd,struct slave_context* ctx_p,int m_type);
   int rdfs_recv_message(int sock_fd,struct slave_context* ctx_p,int *m_type);

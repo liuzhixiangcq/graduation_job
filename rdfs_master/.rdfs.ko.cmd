@@ -1,0 +1,1 @@
+cmd_/home/page/repo/graduation_job/rdfs_master/rdfs.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/page/repo/graduation_job/rdfs_master/rdfs.ko /home/page/repo/graduation_job/rdfs_master/rdfs.o /home/page/repo/graduation_job/rdfs_master/rdfs.mod.o

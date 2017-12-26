@@ -22,7 +22,7 @@
 #include <fcntl.h>
 #include "network.h"
 
-int rdfsConnect(const char* host, int port);
+int rdfsConnect(void);
 /*
 int rdfsDisconnect(rdfs fs);
 

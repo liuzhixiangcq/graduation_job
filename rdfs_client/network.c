@@ -76,6 +76,7 @@ int rdfs_modify_qp(struct slave_context* ctx)
 int rdfs_init_slave_connect(unsigned int s_id,unsigned int ip,unsigned int port)
 {
     int s_fd = rdfs_connect(ip,port);
+    printf("connect to slave fd:%d\n",s_fd);
     slave_ctx[s_id] = rdfs_init_context();
     int m_type;
     rdfs_send_message(s_fd,slave_ctx[s_id],CLIENT_CTX_INFO_TO_SLAVE);
@@ -146,6 +147,7 @@ int rdfs_recv_message(int sock_fd,struct slave_context* ctx_p,int *m_type)
             break;
         case CLIENT_SERACH_SLAVE_INFO:
             sscanf(message.m_data,"%u:%u:%u:%u",&slave_num,&slave_id,&slave_ip,&slave_port);
+            printf("slave info:%d %d %d %d\n",slave_num,slave_id,slave_ip,slave_port);
             rdfs_init_slave_connect(slave_id,slave_ip,slave_port);
             if(slave_num>0)
                 rdfs_recv_message(sock_fd,&message,sizeof(message));

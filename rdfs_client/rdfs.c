@@ -2,29 +2,70 @@
 #include "rdfs.h"
 #include "rdfs_config.h"
 #include "network.h"
-int master_sock_fd;
+int master_kernel_sock_fd;
+int master_userspace_sock_fd;
 struct slave_context * slave_ctx[MAX_SLAVE_NUMS];
 
-int rdfsConnect(const char* host, int port)
+int rdfsConnect(void)
 {
-	master_sock_fd = rdfs_connect(inet_addr(host),port);
+	/*
+	master_kernel_sock_fd = rdfs_connect(inet_addr(MASTER_IP),CLIENT_REQUEST_PORT);
 	struct slave_context *client_ctx = NULL;
-	if(master_sock_fd == -1)
+	if(master_kernel_sock_fd == -1)
 	{
 		printf("connect to master failed\n");
 		return -1;
 	}
 	int m_type;
-	rdfs_send_message(master_sock_fd,client_ctx,CLIENT_SERACH_SLAVE_INFO);
+	rdfs_send_message(master_kernel_sock_fd,client_ctx,CLIENT_SERACH_SLAVE_INFO);
 	
-	rdfs_recv_message(master_sock_fd,client_ctx,&m_type);
+	rdfs_recv_message(master_kernel_sock_fd,client_ctx,&m_type);
+	*/
+	master_userspace_sock_fd = rdfs_connect(inet_addr(MASTER_IP),CLIENT_USERSPACE_REQUEST_PORT);
+	if(master_userspace_sock_fd <= 0)
+	{
+		printf("failed:fd=%d\n",master_userspace_sock_fd);
+		return -1;
+	}
+	printf("fd=%d\n",master_userspace_sock_fd);
+	userspace_test(master_userspace_sock_fd);
+	return 0 ;
+}
+int rdfsOpenFile(int sock_fd, const char* _path, int flags)
+{
+	struct rdfs_message message;
+	message.m_type = RDFS_CLIENT_OPEN;
+	sprintf(&message.m_data,"%d:%s",flags,_path);
+	printf("message:%s\n",message.m_data);
+	send_data(sock_fd,&message,sizeof(struct rdfs_message),0);
+	recv_data(sock_fd,&message,sizeof(struct rdfs_message),0);
+	int open_fd;
+	sscanf(&message.m_data,"%d",&open_fd);
+	return open_fd;
+}
 
-	return master_sock_fd ;
+int rdfsCloseFile(int sock_fd, rdfsFile file)
+{
+
+}
+
+int userspace_test(int fd)
+{
+	struct rdfs_message message;
+	memcpy(message.m_data,"hello world!",20);
+	message.m_type = 1;
+	int ret = send(fd,&message,sizeof(struct rdfs_message),0);
+	//char recv_buf[MAX_MESSAGE_LENGTH];
+	memset(message.m_data,0,sizeof(message.m_data));
+	ret = recv(fd,&message,sizeof(struct rdfs_message),0);
+	printf("recv:%s type:%d\n",message.m_data,message.m_type);
+	return 0;
 }
 int main()
 {
-	int fd = rdfsConnect("192.168.0.2",18514);
-    printf("fd = %d\n",fd);
+	int fd = rdfsConnect();
+	//printf("fd = %d\n",fd);
+	//while(1);
     return 0;
 }
 /*
@@ -33,10 +74,6 @@ int rdfsDisconnect(rdfs fs)
 	return 0;
 }
 
-void correct(const char *old_path, char *new_path)
-{
-
-}
 
 bool getParentDirectory(const char *path, char *parent)
 { 
@@ -64,30 +101,14 @@ int rdfsMknodWithMeta(rdfs fs, char *path, FileMeta *metaFile)
 
 }
 
-rdfsFile rdfsOpenFile(rdfs fs, const char* _path, int flags)
-{
 
-}
-
-int rdfsMknod(rdfs fs, const char* _path)
-{
-
-}
-
-int rdfsCloseFile(rdfs fs, rdfsFile file)
-{
-
-}
 
 int rdfsGetAttribute(rdfs fs, rdfsFile _file, FileMeta *attr)
 {
 
 }
 
-int rdfsAccess(rdfs fs, const char* _path)
-{
 
-}
 
 int rdfsWrite(rdfs fs, rdfsFile _file, const void* buffer, uint64_t size, uint64_t offset)
 {
