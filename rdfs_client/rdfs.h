@@ -22,6 +22,12 @@
 #include <fcntl.h>
 #include "network.h"
 
+struct rdfs_file
+{
+    int inode_ino;
+    long file_size;
+    long offset;
+};
 int rdfsConnect(void);
 /*
 int rdfsDisconnect(rdfs fs);

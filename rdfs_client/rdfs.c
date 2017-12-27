@@ -2,10 +2,13 @@
 #include "rdfs.h"
 #include "rdfs_config.h"
 #include "network.h"
+#include <map>
+
+using namespace std;
 int master_kernel_sock_fd;
 int master_userspace_sock_fd;
 struct slave_context * slave_ctx[MAX_SLAVE_NUMS];
-
+map<int,struct rdfs_file*> file_map; 
 int rdfsConnect(void)
 {
 	/*
@@ -31,7 +34,7 @@ int rdfsConnect(void)
 	userspace_test(master_userspace_sock_fd);
 	return 0 ;
 }
-int rdfsOpenFile(int sock_fd, const char* _path, int flags)
+int rdfsOpenFile(const char* _path, int flags)
 {
 	struct rdfs_message message;
 	message.m_type = RDFS_CLIENT_OPEN;
@@ -39,14 +42,65 @@ int rdfsOpenFile(int sock_fd, const char* _path, int flags)
 	printf("message:%s\n",message.m_data);
 	send_data(sock_fd,&message,sizeof(struct rdfs_message),0);
 	recv_data(sock_fd,&message,sizeof(struct rdfs_message),0);
-	int open_fd;
-	sscanf(&message.m_data,"%d",&open_fd);
+	int open_fd,inode_ino;
+	long file_size,offset;
+	sscanf(&message.m_data,"%d:%d:%ld:%ld",&open_fd,&inode_ino,&file_size,&offset);
+	struct rdfs_file* file_p = (struct rdfs_file*)malloc(sizeof(struct rdfs_file));
+	file_p->inode_ino = inode_ino;
+	file_p->file_size = file_size;
+	file_p->offset = offset;
+	file_map.insert(make_pair(open_fd,file_p));
 	return open_fd;
 }
-
-int rdfsCloseFile(int sock_fd, rdfsFile file)
+int rdfsCloseFile(int rdfs_fd)
 {
+	struct rdfs_message message;
+	message.m_type = RDFS_CLIENT_CLOSE;
+	sprintf(&message.m_data,"%d",rdfs_fd);
+	send_data(sock_fd,&message,sizeof(struct rdfs_message),0);
+	recv_data(sock_fd,&message,sizeof(struct rdfs_message),0);
+	map<int,struct rdfs_file*>::iterator it;
+	it = file_map.find(rdfs_fd);
+	free(it->second);
+	file_map.erase(it);
+	return 0;
+}
+int rdfs_io(int rdfs_fd, const void* buffer, uint64_t length, uint64_t offset,int io_flag)
+{
+	struct rdfs_message message;
+	message.m_type = RDFS_CLIENT_WRITE;
+	map<int,struct rdfs_file*>::iterator it;
+	it = file_map.find(rdfs_fd);
+	int inode_ino = it->second->inode_ino;
 
+	sprintf(&message.m_data,"%d:%ld:%ld",inode_ino,offset,length);
+	send_data(sock_fd,&message,sizeof(struct rdfs_message),0);
+	struct rdfs_search_message s_message;
+	recv_data(sock_fd,&s_message,sizeof(struct rdfs_search_message),0);
+	int nums,s_id,block_id,block_offset,size;
+	nums = s_message.nums;
+	int i;
+	unsigned long local_addr = rdfs_mapping_address();
+	for(i=0;i<nums;i++)
+	{
+		s_id = s_message.info[0][i];
+		block_id = s_message.info[1][i];
+		block_offset = s_message.info[2][i];
+		size = s_message.info[3][i];
+		ret = rdfs_rdma_block_rw(local_addr,s_id,block_id,block_offset,size,io_flag);
+		local_addr += ret;
+	}
+	return length;
+}
+int rdfsWrite(int rdfs_fd, const void* buffer, uint64_t length, uint64_t offset)
+{
+	return rdfs_io(rdfs_fd,buffer,length,offset,RDFS_WRITE);
+}
+
+
+int rdfsRead(int rdfs_fd, void* buffer, uint64_t size, uint64_t offset)
+{
+	return rdfs_io(rdfs_fd,buffer,length,offset,RDFS_READ);
 }
 
 int userspace_test(int fd)
@@ -68,13 +122,16 @@ int main()
 	//while(1);
     return 0;
 }
-/*
+
 int rdfsDisconnect(rdfs fs)
 {
 	return 0;
 }
+int rdfsListDirectory(rdfs fs, const char* _path, rdfsfilelist *list)
+{
 
-
+}
+/*
 bool getParentDirectory(const char *path, char *parent)
 { 
    
@@ -108,20 +165,6 @@ int rdfsGetAttribute(rdfs fs, rdfsFile _file, FileMeta *attr)
 
 }
 
-
-
-int rdfsWrite(rdfs fs, rdfsFile _file, const void* buffer, uint64_t size, uint64_t offset)
-{
-
-}
-
-
-int rdfsRead(rdfs fs, rdfsFile _file, void* buffer, uint64_t size, uint64_t offset)
-{
-
-}
-
-
 #define RECURSIVE_CREATE 1
 #ifdef RECURSIVE_CREATE
 int rdfsCreateDirectory(rdfs fs, const char* _path)
@@ -153,24 +196,5 @@ int rdfsRename(rdfs fs, const char* _oldpath, const char* _newpath)
 
 }
 
-int rdfsListDirectory(rdfs fs, const char* _path, rdfsfilelist *list)
-{
 
-}
-
-int rdfsTest(rdfs fs, const int offset)
-{
-
-}
-
-int rdfsRawWrite(rdfs fs, rdfsFile _file, const void* buffer, uint64_t size, uint64_t offset)
-{
-
-	return 0;
-}
-int rdfsRawRead(rdfs fs, rdfsFile _file, void* buffer, uint64_t size, uint64_t offset)
-{
-	
-	return 0;
-}
 */

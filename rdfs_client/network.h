@@ -65,6 +65,13 @@
   {
      int m_type;
      char m_data[MAX_MESSAGE_LENGTH];
+     int nums;
+  };
+  struct rdfs_search_message
+  {
+     int m_type;
+     int nums;
+     long info[4][MAX_MESSAGE_LENGTH];
   };
   enum RDFS_CLIENT_REQUEST
   {
