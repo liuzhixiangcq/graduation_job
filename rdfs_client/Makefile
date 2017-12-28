@@ -1,7 +1,7 @@
 .PHONY: clean
 
 #CFLAGS  := -Wall -Werror -g
-LD      := gcc
+LD      := g++
 LDLIBS  := ${LDLIBS} -lrdmacm -libverbs -lpthread
 
 APPS    := rdfs

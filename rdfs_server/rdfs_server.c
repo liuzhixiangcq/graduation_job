@@ -79,9 +79,49 @@
     rdfs_event_add(global_epoll_fd, EPOLLIN, &g_events[i]);       
     printf("new conn[%s:%d],pos[%d]\n", inet_ntoa(sin.sin_addr),ntohs(sin.sin_port),i);    
  }    
+int rdfs_client_open(struct rdfs_event* ev)
+{
+    printf("%s\n",__func__);
+    int flag,mode;
+    char filename[RDFS_FILE_PATH_LENGTH];
+    printf("%s\n",ev->message.data);
+    sscanf(ev->message.data,"%d:%d:%s",&flag,&mode,filename);
+    printf("%s %d, %d, %s\n",__func__,flag,mode,filename);
+    //int open_fd;
+    //int open_fd = open(filename,flag,mode);
+    //int open_fd = open(filename,O_RDWR|O_CREAT,0644);
+    int open_fd = open("/mnt/hmfs/b",O_RDWR|O_CREAT,0644);
+    printf("%s open_fd = %d\n",__func__,open_fd);
+    sprintf(ev->message.data,"%d",open_fd);
+    printf("%s\n",ev->message.data);
+    return 0;
+}
+int rdfs_client_close(struct rdfs_event *ev)
+{
+    int open_fd = 0;
+    sscanf(ev->message.data,"%d",&open_fd);
+    int ret = close(open_fd);
+    printf("%s close ret:%d\n",ret);
+    sprintf(ev->message.data,"%d",ret);
+    return 0;
+}
 int rdfs_process_request(struct rdfs_event *ev)
 {
-    
+    printf("%s\n",__func__);
+    int m_type = ev->message.type;
+    printf("%s m_type:%d\n",__func__,m_type);
+    switch(m_type)
+    {
+        case RDFS_CLIENT_OPEN:
+            rdfs_client_open(ev);
+            break;
+        case RDFS_CLIENT_CLOSE:
+            rdfs_client_close(ev);
+            break;
+        default:
+            break;
+    }
+    return 0;
 }
  // receive data    
 void rdfs_recv_data(int fd, int events, void *arg)    
@@ -91,12 +131,13 @@ void rdfs_recv_data(int fd, int events, void *arg)
     int len;    
     // receive data  
     len = recv(fd, &ev->message, sizeof(struct rdfs_message), 0);  
-    rdfs_process_request(ev);    
-    rdfs_event_del(global_epoll_fd, ev);  
+    //rdfs_process_request(ev);    
+    rdfs_event_del(global_epoll_fd, ev); 
     if(len > 0)  
     {    
-        ev->message.data[len] = '\0';    
-        printf("C[%d]:%s\n", fd, ev->message.data);    
+        //ev->message.data[len] = '\0';    
+        printf("C[%d]:%s\n", fd, ev->message.data);
+        rdfs_process_request(ev);
         // change to send event    
         rdfs_event_set(ev, fd, rdfs_send_data, ev);    
         rdfs_event_add(global_epoll_fd, EPOLLOUT, ev);    

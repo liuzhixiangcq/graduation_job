@@ -79,9 +79,13 @@
       RDFS_CLIENT_CLOSE,
       RDFS_CLIENT_MKDIR,
       RDFS_CLIENT_RMDIR,
-      RDFS_CLIENT_LISTDIR
+      RDFS_CLIENT_LISTDIR,
+      RDFS_CLIENT_READ,
+      RDFS_CLIENT_WRITE
   };
   int rdfs_connect(unsigned int ip,int port);
   int rdfs_send_message(int sock_fd,struct slave_context* ctx_p,int m_type);
   int rdfs_recv_message(int sock_fd,struct slave_context* ctx_p,int *m_type);
+  int send_data(int fd,void* data,int size);
+  int recv_data(int fd,void* data,int size);
  #endif

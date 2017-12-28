@@ -39,7 +39,14 @@
 
  #define SLAVE_CTX_INFO_TO_CLIENT   4
  #define MASTER_CTX_INFO_TO_CLIENT  5
-
+ enum RDFS_CLIENT_REQUEST
+ {
+     RDFS_CLIENT_OPEN,
+     RDFS_CLIENT_CLOSE,
+     RDFS_CLIENT_MKDIR,
+     RDFS_CLIENT_RMDIR,
+     RDFS_CLIENT_LISTDIR
+ };
  struct server_socket
  {
      struct socket * s_sock;// create

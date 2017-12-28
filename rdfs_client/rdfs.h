@@ -22,6 +22,8 @@
 #include <fcntl.h>
 #include "network.h"
 
+#define RDFS_WRITE 0
+#define RDFS_READ 1
 struct rdfs_file
 {
     int inode_ino;

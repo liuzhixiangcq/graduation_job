@@ -51,7 +51,7 @@ int rdfs_modify_qp(struct slave_context* ctx)
 
     memset(&attr, 0, sizeof(attr));
     attr.qp_state = IBV_QPS_RTR;
-    attr.path_mtu = ctx->active_mtu;
+    //attr.path_mtu = ctx->active_mtu;
     attr.dest_qp_num = ctx->rem_qpn;
     attr.rq_psn	    = ctx->rem_psn;
     attr.max_dest_rd_atomic = 1;
@@ -134,7 +134,7 @@ int rdfs_recv_message(int sock_fd,struct slave_context* ctx_p,int *m_type)
     struct rdfs_message message;
     int size = 0;
     memset(message.m_data,0,MAX_MESSAGE_LENGTH);
-    size = recv_data(sock_fd,&message,sizeof(message));
+    size = recv_data(sock_fd,(void*)&message,sizeof(message));
     *m_type = message.m_type;
     unsigned int slave_num,slave_id,slave_ip,slave_port;
     switch(*m_type)
@@ -150,18 +150,18 @@ int rdfs_recv_message(int sock_fd,struct slave_context* ctx_p,int *m_type)
             printf("slave info:%d %d %d %d\n",slave_num,slave_id,slave_ip,slave_port);
             rdfs_init_slave_connect(slave_id,slave_ip,slave_port);
             if(slave_num>0)
-                rdfs_recv_message(sock_fd,&message,sizeof(message));
+                rdfs_recv_message(sock_fd,ctx_p,m_type);
             break;
         default:
             break;
     }
     return size;
 }
-int send_data(int fd,char* data,int size)
+int send_data(int fd,void* data,int size)
 {
     return send(fd,data,size,0);
 }
-int recv_data(int fd,char* data,int size)
+int recv_data(int fd,void* data,int size)
 {
     return recv(fd,data,size,0);
 }

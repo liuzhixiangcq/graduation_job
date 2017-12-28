@@ -113,6 +113,40 @@
     }
     return 0;
  }
+struct inode* path_to_inode(char *path)
+{
+    struct inode *inode = NULL;
+    //struct dentry *dentry=NULL;
+    struct file *file=NULL;
+    file=filp_open(path,O_DIRECTORY,0);
+    if(IS_ERR(file))
+    {
+     	file=filp_open(path,O_RDONLY,0444);
+        if(IS_ERR(file))
+ 		{
+     			printk("The path %s is error!\n",path);
+ 			return 0;
+ 		}
+    }
+    inode = file->f_inode;
+    return inode;
+}
+ int rdfs_client_open(struct client_request_task* task)
+ {
+     rdfs_trace();
+     int rw_flags,mode;
+     char filename[RDFS_FILE_PATH_LENGTH];
+     sscanf(&task->message->m_data,"%d:%d:%s",&rw_flags,&mode,filename);
+     printk("%s rw_flags:%d path:%s\n",__FUNCTION__,rw_flags,filename);
+     int open_fd = do_sys_open(AT_FDCWD, filename, rw_flags, mode);
+     struct inode* inode = path_to_inode(filename);
+     int ino = inode->i_ino;
+     int file_size = i_size_read(inode);
+     sprintf(&task->message->m_data,"%d:%d:%d:%d",open_fd,ino,file_size,0);
+     send_data(task->c_sock,task->message,sizeof(struct rdfs_message));
+     return 0;
+ }
+ 
  static int rdfs_process_task(void *arg)
  {
      rdfs_trace();
@@ -131,6 +165,13 @@
          {
              case CLIENT_SERACH_SLAVE_INFO:
                 rdfs_search_slave_info(task->c_sock);
+                task->c_sock = NULL;
+                task->next = NULL;
+                kfree(task->message);
+                kfree(task);
+                break;
+             case RDFS_CLIENT_OPEN:
+                rdfs_client_open(task);
                 task->c_sock = NULL;
                 task->next = NULL;
                 kfree(task->message);

@@ -23,6 +23,7 @@
 
  #define IP_MAX_LENGTH  256
  #define NETWORK_BUFF_LENGTH 1024
+ #define RDFS_FILE_PATH_LENGTH 1024
 struct rdfs_message
 {
     int type;
@@ -34,7 +35,9 @@ enum RDFS_CLIENT_REQUEST
     RDFS_CLIENT_CLOSE,
     RDFS_CLIENT_MKDIR,
     RDFS_CLIENT_RMDIR,
-    RDFS_CLIENT_LISTDIR
+    RDFS_CLIENT_LISTDIR,
+    RDFS_CLIENT_READ,
+    RDFS_CLIENT_WRITE
 };
 int rdfs_init_listen_socket(int e_fd,const char*ip,int port);
 void rdfs_accept_connection(int fd, int events, void *arg);

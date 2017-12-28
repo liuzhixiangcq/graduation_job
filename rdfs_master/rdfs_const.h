@@ -47,6 +47,7 @@
 #define RDFS_DATE     "2017/12/3"
 #define RDFS_VERSION  "0.1"
 
+#define RDFS_FILE_PATH_LENGTH   1024
 
 #define RDFS_SB_SIZE    		(PAGE_SIZE>>1)
 //cj
