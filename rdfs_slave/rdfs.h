@@ -24,7 +24,7 @@ int rdfs_init_rdma_request(struct rdma_request * req,RDMA_OP op,u64 local_addr,u
 //int rdfs_post_wr(struct rdma_request * req);
 int rdfs_modify_qp(struct rdfs_context* ctx_p);
 struct rdfs_context* rdfs_init_context(struct ib_device *dev,struct socket* client_sock);
-int rdfs_wait_register(void * ip_info,struct ib_device* dev);
+int rdfs_wait_register(void * ip_info);
 
 #endif
 

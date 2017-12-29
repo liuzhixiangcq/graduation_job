@@ -11,8 +11,9 @@ struct slave_context * slave_ctx[MAX_SLAVE_NUMS];
 map<int,struct rdfs_file*> file_map; 
 int rdfsConnect(void)
 {
-	/*
+/*	
 	master_kernel_sock_fd = rdfs_connect(inet_addr(MASTER_IP),CLIENT_REQUEST_PORT);
+	printf("%s master_kernel_sock_fd = %d\n",__func__,master_kernel_sock_fd);
 	struct slave_context *client_ctx = NULL;
 	if(master_kernel_sock_fd == -1)
 	{
@@ -20,11 +21,11 @@ int rdfsConnect(void)
 		return -1;
 	}
 	int m_type;
-	*/
-	//rdfs_send_message(master_kernel_sock_fd,client_ctx,CLIENT_SERACH_SLAVE_INFO);
+	//client_ctx = rdfs_init_context();
+	rdfs_send_message(master_kernel_sock_fd,client_ctx,CLIENT_SERACH_SLAVE_INFO);
 	
-	//rdfs_recv_message(master_kernel_sock_fd,client_ctx,&m_type);
-	
+	rdfs_recv_message(master_kernel_sock_fd,client_ctx,&m_type);
+*/	
 	master_userspace_sock_fd = rdfs_connect(inet_addr(MASTER_IP),CLIENT_USERSPACE_REQUEST_PORT);
 	if(master_userspace_sock_fd <= 0)
 	{
@@ -63,8 +64,12 @@ int rdfsCloseFile(int rdfs_fd)
 	struct rdfs_message message;
 	message.m_type = RDFS_CLIENT_CLOSE;
 	sprintf(message.m_data,"%d",rdfs_fd);
+	printf("%s send info:%s\n",__func__,message.m_data);
 	send_data(master_userspace_sock_fd,&message,sizeof(struct rdfs_message));
 	recv_data(master_userspace_sock_fd,&message,sizeof(struct rdfs_message));
+	int close_ret;
+	sscanf(message.m_data,"%d",&close_ret);
+	printf("%s close ret:%d\n",__func__,close_ret);
 	map<int,struct rdfs_file*>::iterator it;
 	it = file_map.find(rdfs_fd);
 	free(it->second);
@@ -132,21 +137,36 @@ int userspace_test(int fd)
 	*/
 	return 0;
 }
+int rdfsDisconnect(void)
+{
+	printf("%s\n",__func__);
+	close(master_userspace_sock_fd);
+	return 0;
+}
 int main()
 {
 	int fd = rdfsConnect();
-	int open_fd = rdfsOpenFile("/mn/hmfs/e",O_RDWR|O_CREAT);
-	printf("opened file fd:%d\n",fd);
-	rdfsCloseFile(open_fd);
+	
+	int open_fd1 = rdfsOpenFile("/mnt/hmfs/a",O_RDWR|O_CREAT);
+	printf("opened file fd:%d\n",open_fd1);
+	
+	int open_fd2 = rdfsOpenFile("/mnt/hmfs/b",O_RDWR|O_CREAT);
+	printf("opened file fd:%d\n",open_fd2);
+
+	rdfsCloseFile(open_fd1);
+	
+	rdfsCloseFile(open_fd2);
+	while(1);
+	
+	//rdfsDisconnect();
+	//close()
 	//printf("fd = %d\n",fd);
 	//while(1);
     return 0;
 }
+
+
 /*
-int rdfsDisconnect(rdfs fs)
-{
-	return 0;
-}
 int rdfsListDirectory(rdfs fs, const char* _path, rdfsfilelist *list)
 {
 

@@ -38,9 +38,9 @@
      struct ibv_cq* recv_cq;
      struct ibv_comp_channel *event_channel;
   
-     int active_mtu;   
+     enum ibv_mtu active_mtu;   
      uint32_t rkey;  // rkey to be sent to client
-     //union ibv_gid gid;
+     union ibv_gid gid;
      int qpn;
      int psn;
      int lid;

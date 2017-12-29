@@ -11,4 +11,4 @@
  {
      int ret = 0;
      ret = rdfs_init_network(MASTER_IP,CLIENT_USERSPACE_REQUEST_PORT);
- }
+}

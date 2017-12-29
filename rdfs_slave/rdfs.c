@@ -122,7 +122,8 @@ struct rdfs_context* rdfs_init_context(struct ib_device *dev,struct socket* clie
         return NULL;
     }
     ctx_p->ib_dev = dev;
-
+    if(dev == NULL)
+        printk("%s dev NULL\n",__FUNCTION__);
     ib_query_device(dev,&(ctx_p->ib_dev_attr));
     /*
     INIT_IB_EVENT_HANDLER(&ieh,dev,async_event_handler);
@@ -226,11 +227,12 @@ struct rdfs_context* rdfs_init_context(struct ib_device *dev,struct socket* clie
 
 
 
-int rdfs_wait_register(void * ip_info,struct ib_device* dev)
+int rdfs_wait_register(void * arg)
 {
     struct server_socket s_sock;
     struct server_socket* server_sock_p = &s_sock;	
-
+    struct ip_info* ip_info_p = (struct ip_info*)arg;
+    struct ib_device* dev = ip_info_p->ib_dev;
     const char *server_ip = SLAVE_IP;
     int server_port = SLAVE_REGISTER_PORT;
 

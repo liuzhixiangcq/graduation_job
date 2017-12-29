@@ -77,12 +77,12 @@ int rdfs_register(void * ip_info)
 int rdfs_init_register_service(const char *ip,int server_port,struct ib_device * dev)
 {
     printk("%s\n",__FUNCTION__);
-    struct ip_info ip_info;
-    strcpy(ip_info.ip,ip);
-    ip_info.port = server_port;
-    ip_info.ib_dev = dev;
+    struct ip_info* arg = (struct ip_info*)kmalloc(sizeof(struct ip_info),GFP_KERNEL);
+    strcpy(arg->ip,ip);
+    arg->port = server_port;
+    arg->ib_dev = dev;
     //printk("%s --> ip_info.port:%lx\n",__FUNCTION__,ip_info.port);
-    struct task_struct * rdfs_register_service = kthread_run(rdfs_wait_register,(void*)&ip_info,"rdfs_register_service");
+    struct task_struct * rdfs_register_service = kthread_run(rdfs_wait_register,(void*)arg,"rdfs_register_service");
     if(IS_ERR(rdfs_register_service))
     {
         printk("%s --> rdfs register service start failed\n",__FUNCTION__);

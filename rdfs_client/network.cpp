@@ -22,7 +22,19 @@ struct slave_context * rdfs_init_context()
     ctx->send_cq = ibv_create_cq(ctx->context, 1000,ctx->event_channel,0,0); 	
     ctx->recv_cq = ibv_create_cq(ctx->context, 1000,ctx->event_channel,0,0); 
 
-    struct ibv_qp_init_attr qp_attr;
+    struct ibv_port_attr attr;
+    
+    int retval = ibv_query_port(ctx->context,1,&attr);		
+
+    ctx->lid = attr.lid;			
+   		
+    
+    long int rand_value = rand();	
+    ctx->psn = rand_value & 0xffffff;			
+    ctx->active_mtu = attr.active_mtu;
+    
+    ibv_query_gid(ctx->context, 1, 0, &ctx->gid);		
+    struct ibv_qp_init_attr qp_attr;	
     memset(&qp_attr, 0, sizeof(struct ibv_qp_init_attr));
     qp_attr.send_cq = ctx->send_cq;
     qp_attr.recv_cq = ctx->recv_cq;
@@ -34,7 +46,7 @@ struct slave_context * rdfs_init_context()
     qp_attr.qp_type = IBV_QPT_RC;
 
     ctx->qp = ibv_create_qp(ctx->pd, &qp_attr);
-   	
+    ctx->qpn = ctx->qp->qp_num;	
     return ctx;		
 }
 int rdfs_modify_qp(struct slave_context* ctx)
@@ -51,7 +63,7 @@ int rdfs_modify_qp(struct slave_context* ctx)
 
     memset(&attr, 0, sizeof(attr));
     attr.qp_state = IBV_QPS_RTR;
-    //attr.path_mtu = ctx->active_mtu;
+    attr.path_mtu = ctx->active_mtu;
     attr.dest_qp_num = ctx->rem_qpn;
     attr.rq_psn	    = ctx->rem_psn;
     attr.max_dest_rd_atomic = 1;
@@ -75,6 +87,7 @@ int rdfs_modify_qp(struct slave_context* ctx)
 }
 int rdfs_init_slave_connect(unsigned int s_id,unsigned int ip,unsigned int port)
 {
+    printf("%s\n",__func__);
     int s_fd = rdfs_connect(ip,port);
     printf("connect to slave fd:%d\n",s_fd);
     slave_ctx[s_id] = rdfs_init_context();
@@ -107,6 +120,7 @@ int rdfs_connect(unsigned int ip,int port)
 }
 int rdfs_send_message(int sock_fd,struct slave_context* ctx_p,int m_type)
 {
+    printf("%s\n",__func__);
     struct rdfs_message message;
     int size = 0;
     memset(message.m_data,0,MAX_MESSAGE_LENGTH);
@@ -131,10 +145,12 @@ int rdfs_send_message(int sock_fd,struct slave_context* ctx_p,int m_type)
 }
 int rdfs_recv_message(int sock_fd,struct slave_context* ctx_p,int *m_type)
 {
+    printf("%s\n",__func__);
     struct rdfs_message message;
     int size = 0;
     memset(message.m_data,0,MAX_MESSAGE_LENGTH);
     size = recv_data(sock_fd,(void*)&message,sizeof(message));
+    printf("%s type:%d data:%s\n",__func__,message.m_type,message.m_data);
     *m_type = message.m_type;
     unsigned int slave_num,slave_id,slave_ip,slave_port;
     switch(*m_type)
@@ -146,8 +162,8 @@ int rdfs_recv_message(int sock_fd,struct slave_context* ctx_p,int *m_type)
        // ctx_p->rem_rkey,ctx_p->rem_qpn,ctx_p->rem_psn,ctx_p->rem_lid,ctx_p->rem_block_nums);
             break;
         case CLIENT_SERACH_SLAVE_INFO:
-            sscanf(message.m_data,"%u:%u:%u:%u",&slave_num,&slave_id,&slave_ip,&slave_port);
-            printf("slave info:%d %d %d %d\n",slave_num,slave_id,slave_ip,slave_port);
+            sscanf(message.m_data,"%d:%d:%u:%d",&slave_num,&slave_id,&slave_ip,&slave_port);
+            printf("slave info:%d %d %u %d\n",slave_num,slave_id,slave_ip,slave_port);
             rdfs_init_slave_connect(slave_id,slave_ip,slave_port);
             if(slave_num>0)
                 rdfs_recv_message(sock_fd,ctx_p,m_type);

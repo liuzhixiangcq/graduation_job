@@ -65,9 +65,10 @@
  int rdfs_add_task(struct client_request_task * task)
  {
    // struct client_request_task * tmp = NULL;
+    printk("%s \n",__FUNCTION__);
     spin_lock(&client_request_task_list.task_list_lock);
     if(client_request_task_list.task_list == NULL)
-        client_request_task_list.task_list;
+        client_request_task_list.task_list = task;
     else
     {
         task->next = client_request_task_list.task_list;
@@ -89,6 +90,7 @@
     }
     else
     {
+        printk("%s have jobs\n",__FUNCTION__);
         tmp = client_request_task_list.task_list;
         client_request_task_list.task_list = tmp->next;
         tmp->next = NULL;
@@ -105,10 +107,11 @@
     message.m_type = CLIENT_SERACH_SLAVE_INFO;
     int cnt = slave_id;
     int i = 0;
-    int t = cnt;
+    int t = cnt-1;
     for(i=0;i<cnt;i++)
     {
-        sprintf(message.m_data,"%u:%u:%u:%u",t--,slave_infos[i].slave_id,slave_infos[i].ip,slave_infos[i].client_register_port);
+        sprintf(message.m_data,"%d:%d:%u:%d",t--,slave_infos[i].slave_id,slave_infos[i].ip,slave_infos[i].client_register_port);
+        printk("%s type:%d data:%s\n",__FUNCTION__,message.m_type,message.m_data);
         size = send_data(sock,&message,sizeof(message));
     }
     return 0;
@@ -133,6 +136,7 @@ struct inode* path_to_inode(char *path)
 }
  int rdfs_client_open(struct client_request_task* task)
  {
+     /*
      rdfs_trace();
      int rw_flags,mode;
      char filename[RDFS_FILE_PATH_LENGTH];
@@ -144,6 +148,7 @@ struct inode* path_to_inode(char *path)
      int file_size = i_size_read(inode);
      sprintf(&task->message->m_data,"%d:%d:%d:%d",open_fd,ino,file_size,0);
      send_data(task->c_sock,task->message,sizeof(struct rdfs_message));
+     */
      return 0;
  }
  
@@ -160,18 +165,12 @@ struct inode* path_to_inode(char *path)
              msleep(TASK_SLEEP_TIME);
              continue;
          }
+         printk("%s message_type:%d data:%s\n",task->message->m_type,task->message->m_data);
          m_type = task->message->m_type;
          switch(m_type)
          {
              case CLIENT_SERACH_SLAVE_INFO:
                 rdfs_search_slave_info(task->c_sock);
-                task->c_sock = NULL;
-                task->next = NULL;
-                kfree(task->message);
-                kfree(task);
-                break;
-             case RDFS_CLIENT_OPEN:
-                rdfs_client_open(task);
                 task->c_sock = NULL;
                 task->next = NULL;
                 kfree(task->message);
@@ -233,6 +232,7 @@ struct inode* path_to_inode(char *path)
     int size = 0;
     memset(m_info->m_data,0,MAX_MESSAGE_LENGTH);
     size = recv_data(s_info->sock.c_sock,m_info,sizeof(struct rdfs_message));
+    printk("%s recv type:%d data:%s\n",__FUNCTION__,m_info->m_type,m_info->m_data);
     task->message = m_info;
     task->next = NULL;
     task->c_sock = s_info->sock.c_sock;
@@ -366,7 +366,7 @@ struct inode* path_to_inode(char *path)
      strcpy(request_info_p->ip,ip);
      request_info_p->port = port;
      request_info_p->ib_dev = dev;
-     request_info_p->service_type = SLAVE_REGISTER_SERVICE;
+     request_info_p->service_type = CLIENT_REQUEST_SERVICE;
      printk("%s arg_addr:%lx ip:%s port:%d\n",__FUNCTION__,request_info_p,request_info_p->ip,request_info_p->port);
      rdfs_client_request_service = kthread_run(rdfs_init_service,(void*)request_info_p,"rdfs_wait_client_request_service");
      if(IS_ERR(rdfs_client_request_service))
