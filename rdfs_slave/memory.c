@@ -44,8 +44,17 @@ void * rdfs_ioremap(u64 phy_addr,u64 size)
     }
     return retval;
 }
+int map_flag = 0;
+int map_block_nums = 0;
+unsigned long map_dma_addr = 0;
 int rdfs_map_mem(struct rdfs_context* ctx_p)
 {
+    if(map_flag)
+    {
+        ctx_p->block_nums = map_block_nums;
+        ctx_p->dma_addr = map_dma_addr;
+        return 0;
+    }
     u64 phy_addr = SLAVE_MAPPING_PHY_ADDR;
     u64 size = SLAVE_MAPPING_PHY_SIZE;
     char* virt_addr;
@@ -69,8 +78,10 @@ int rdfs_map_mem(struct rdfs_context* ctx_p)
         return -1;
     }
     ctx_p->dma_addr = dma_addr;
+    map_block_nums = ctx_p->block_nums;
+    map_dma_addr = ctx_p->dma_addr;
     //ctx_s.dma_addr = dma_addr;
 	//ctx.dma_addr = dma_addr;
-
+    map_flag = 1;
     return 0;
 }

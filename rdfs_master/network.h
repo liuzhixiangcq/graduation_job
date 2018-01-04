@@ -45,7 +45,9 @@
      RDFS_CLIENT_CLOSE,
      RDFS_CLIENT_MKDIR,
      RDFS_CLIENT_RMDIR,
-     RDFS_CLIENT_LISTDIR
+     RDFS_CLIENT_LISTDIR,
+     RDFS_CLIENT_READ,
+     RDFS_CLIENT_WRITE
  };
  struct server_socket
  {
@@ -63,6 +65,7 @@
  struct client_request_task
  {
     struct rdfs_message *message;
+    //void* message;
     struct socket * c_sock;
     struct client_request_task * next;
  };
@@ -76,8 +79,14 @@
  {
     int m_type;
     char m_data[MAX_MESSAGE_LENGTH];
+    int nums;
  };
-
+ struct rdfs_search_message
+ {
+    int m_type;
+    int nums;
+    long info[4][MAX_MESSAGE_LENGTH];
+ };
  int rdfs_recv_message(struct socket* sock,struct rdfs_context* ctx_p,int* m_type);
  int rdfs_send_message(struct socket* sock,struct rdfs_context* ctx_p,int m_type);
  int  send_data(struct socket * client_sock,char* data,int size);

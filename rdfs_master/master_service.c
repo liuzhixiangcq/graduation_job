@@ -26,6 +26,7 @@
  #include "rdfs_config.h"
  #include "rdfs_rdma.h"
  #include "master_service.h"
+ #include "pgtable.h"
  struct task_struct * rdfs_slave_register_service;
  struct task_struct * rdfs_client_request_service;
  struct task_struct * rdfs_jobs[RDFS_PROCESS_JOBS];
@@ -136,22 +137,29 @@ struct inode* path_to_inode(char *path)
 }
  int rdfs_client_open(struct client_request_task* task)
  {
-     /*
+     
      rdfs_trace();
      int rw_flags,mode;
      char filename[RDFS_FILE_PATH_LENGTH];
-     sscanf(&task->message->m_data,"%d:%d:%s",&rw_flags,&mode,filename);
-     printk("%s rw_flags:%d path:%s\n",__FUNCTION__,rw_flags,filename);
-     int open_fd = do_sys_open(AT_FDCWD, filename, rw_flags, mode);
+     sscanf(&task->message->m_data,"%s",filename);
+     printk("%s  path:%s\n",__FUNCTION__,filename);
      struct inode* inode = path_to_inode(filename);
      int ino = inode->i_ino;
-     int file_size = i_size_read(inode);
-     sprintf(&task->message->m_data,"%d:%d:%d:%d",open_fd,ino,file_size,0);
+     long file_size = i_size_read(inode);
+     sprintf(&task->message->m_data,"%d:%ld",ino,file_size);
      send_data(task->c_sock,task->message,sizeof(struct rdfs_message));
-     */
+     
      return 0;
  }
- 
+ int rdfs_client_read(struct client_request_task* task)
+ {
+     int ino;
+     long offset,size;
+     sscanf(task->message->m_data,"%d:%ld:%ld",&ino,&offset,&size);
+     rdfs_client_search_metadata(task,ino,offset,size);
+     send_data(task->c_sock,task->message,sizeof(struct rdfs_message));
+     return 0;
+ }
  static int rdfs_process_task(void *arg)
  {
      rdfs_trace();
@@ -165,7 +173,7 @@ struct inode* path_to_inode(char *path)
              msleep(TASK_SLEEP_TIME);
              continue;
          }
-         printk("%s message_type:%d data:%s\n",task->message->m_type,task->message->m_data);
+         printk("%s message_type:%d data:%s\n",__FUNCTION__,task->message->m_type,task->message->m_data);
          m_type = task->message->m_type;
          switch(m_type)
          {
@@ -176,6 +184,27 @@ struct inode* path_to_inode(char *path)
                 kfree(task->message);
                 kfree(task);
                 break;
+             case RDFS_CLIENT_READ:
+                rdfs_client_read(task); 
+                task->c_sock = NULL;
+                task->next = NULL;
+                kfree(task->message);
+                kfree(task);
+                break;  
+             case RDFS_CLIENT_WRITE:
+                rdfs_client_read(task); 
+                task->c_sock = NULL;
+                task->next = NULL;
+                kfree(task->message);
+                kfree(task);
+                break; 
+            case RDFS_CLIENT_OPEN:
+                rdfs_client_open(task); 
+                task->c_sock = NULL;
+                task->next = NULL;
+                kfree(task->message);
+                kfree(task);
+                break; 
              default:
              break;
          }
@@ -296,6 +325,7 @@ struct inode* path_to_inode(char *path)
      while(1)
      {
          retval = kernel_accept((s_info.sock).s_sock,&(s_info.sock).c_sock,0);
+         printk("%s **********kernel accept!!!!!",__FUNCTION__);
          if(retval)
          {
              printk("%s kernel accept failed\n",__FUNCTION__);
@@ -308,8 +338,13 @@ struct inode* path_to_inode(char *path)
          }
          else if(s_info.service_type == CLIENT_REQUEST_SERVICE)
          {
-             retval = rdfs_process_request(&s_info);
-             if(client_request_service_stop_flag)break;
+             //!!!!!!!!!!!!! 
+             while(1)
+             {
+                retval = rdfs_process_request(&s_info);
+                if(client_request_service_stop_flag)break;
+             }
+             
          }
      }
      sock_release(s_info.sock.s_sock);

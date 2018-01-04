@@ -28,4 +28,5 @@
  int rdfs_establish_mapping(struct inode *inode);
  int rdfs_destroy_mapping(struct inode *inode);
  int rdfs_search_metadata(struct rdfs_inode_info * ri_info,unsigned long offset,unsigned long *s_id,unsigned long *block_id);
+ int rdfs_client_search_metadata(struct client_request_task*task,int ino,long offset,long length);
  #endif

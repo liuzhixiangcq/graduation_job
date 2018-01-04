@@ -19,6 +19,8 @@
 #include "balloc.h"
 #include "memory.h"
 #include "rdfs_config.h"
+#include "inode.h"
+#include "network.h"
 static inline pud_t *rdfs_pud_alloc_one(void)
 {
 	//rdfs_trace();
@@ -155,7 +157,7 @@ int rdfs_init_pg_table(struct super_block * sb, u64 ino)
 
 int rdfs_insert_page(struct super_block *sb, struct inode *vfs_inode, phys_addr_t phys)
 {
-  //  rdfs_trace();
+    rdfs_trace();
     unsigned long ino = 0;
     unsigned long addr = 0;
     unsigned long offset = 0;
@@ -366,7 +368,61 @@ int rdfs_search_metadata(struct rdfs_inode_info * ri_info,unsigned long offset,u
     printk("%s ri_info:%lx offset:%lx\n",__FUNCTION__,ri_info,offset);
     unsigned long pte_value = 0;
     pte_value = *(unsigned long *)(ri_info->i_virt_addr + offset);
+    printk("*******:pte_value:%lx\n",pte_value);
     *s_id = (pte_value & SLAVE_ID_MASK) >> SLAVE_ID_SHIFT;
     *block_id = (pte_value & BLOCK_ID_MASK) >> BLOCK_ID_SHIFT;
+    return 0;
+}
+int rdfs_client_search_metadata(struct client_request_task*task,int ino,long offset,long length)
+{
+    rdfs_trace();
+    struct super_block* sb = RDFS_SUPER_BLOCK_ADDRESS;
+    struct rdfs_inode* ri = get_rdfs_inode(sb,ino);
+    struct inode* inode = rdfs_iget(sb,ino);
+    struct rdfs_inode_info * ri_info = RDFS_I(inode);
+    loff_t i_size=0;
+    i_size = i_size_read(inode);
+    //rdfs_establish_mapping(inode);
+    long pages_exist = 0,pages_to_alloc = 0,pages_needed = 0;
+	pages_needed = (offset + length + sb->s_blocksize -1) >> sb->s_blocksize_bits;
+	pages_exist = (i_size + sb->s_blocksize - 1) >> sb->s_blocksize_bits;
+    pages_to_alloc = pages_needed - pages_exist;
+    int retval;
+	if(pages_to_alloc > 0)
+	{
+		retval = rdfs_alloc_blocks(inode,pages_to_alloc,1,ALLOC_PTE);
+		if(retval < 0)
+		{
+			printk("%s --> rdfs_alloc_blocks failed\n",__FUNCTION__);
+			return retval;
+		}
+	}
+	unsigned long start = offset,end = offset + length;
+	unsigned long i = 0,pte = 0,block_offset = 0;
+	unsigned long s_id = 0,block_id = 0;
+    unsigned long size = 0;
+    int cnt = 0;
+    int back_cnt = 0;
+	for(i=start;i<end;)
+	{
+		pte = (i >> RDFS_BLOCK_SHIFT) << RDFS_BLOCK_SHIFT;
+		block_offset = i & RDFS_BLOCK_OFFSET_MASK;
+		
+		size = RDFS_BLOCK_SIZE - block_offset;
+		printk("pte:%ld,block_offset:%ld block_size:%ld size:%ld\n",pte,block_offset,RDFS_BLOCK_SIZE,size);
+		if(i+size > end)
+			size = (unsigned long)((long)end - (long)i);
+        retval = rdfs_search_metadata(ri_info,pte,&s_id,&block_id);
+        cnt += sprintf(task->message->m_data + cnt,"%ld:%ld:%ld:%ld",s_id,block_id,block_offset,size);
+		printk("%s rdfs_seach_metadata:s_id:%lx block_id:%lx block_offset:%lx size:%lx\n",__FUNCTION__,s_id,block_id,block_offset,size);
+        i += RDFS_BLOCK_SIZE - block_offset;
+        back_cnt ++;
+    }
+    task->message->nums = back_cnt;
+	if(offset + length > i_size)
+	{	
+		i_size_write(inode, offset + length);
+	}
+    i_size_write(inode,offset + length);
     return 0;
 }

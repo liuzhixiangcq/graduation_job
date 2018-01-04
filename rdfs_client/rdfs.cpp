@@ -11,7 +11,7 @@ struct slave_context * slave_ctx[MAX_SLAVE_NUMS];
 map<int,struct rdfs_file*> file_map; 
 int rdfsConnect(void)
 {
-/*	
+	
 	master_kernel_sock_fd = rdfs_connect(inet_addr(MASTER_IP),CLIENT_REQUEST_PORT);
 	printf("%s master_kernel_sock_fd = %d\n",__func__,master_kernel_sock_fd);
 	struct slave_context *client_ctx = NULL;
@@ -25,7 +25,7 @@ int rdfsConnect(void)
 	rdfs_send_message(master_kernel_sock_fd,client_ctx,CLIENT_SERACH_SLAVE_INFO);
 	
 	rdfs_recv_message(master_kernel_sock_fd,client_ctx,&m_type);
-*/	
+	
 	master_userspace_sock_fd = rdfs_connect(inet_addr(MASTER_IP),CLIENT_USERSPACE_REQUEST_PORT);
 	if(master_userspace_sock_fd <= 0)
 	{
@@ -52,6 +52,12 @@ int rdfsOpenFile(const char* _path, int flags)
 	long file_size = 10,offset = 0;
 	sscanf(message.m_data,"%d",&open_fd);
 	printf("message:%s\n",message.m_data);
+	sprintf(message.m_data,"%s",_path);
+	send_data(master_kernel_sock_fd,&message,sizeof(struct rdfs_message));
+	printf("message:%s\n",message.m_data);
+	recv_data(master_kernel_sock_fd,&message,sizeof(struct rdfs_message));
+	printf("message:%s\n",message.m_data);
+	sscanf(message.m_data,"%d:%ld",&inode_ino,&file_size);
 	struct rdfs_file* file_p = (struct rdfs_file*)malloc(sizeof(struct rdfs_file));
 	file_p->inode_ino = inode_ino;
 	file_p->file_size = file_size;
@@ -86,6 +92,7 @@ int rdfs_rdma_block_rw(unsigned long local_addr,unsigned long s_id,unsigned long
 }
 int rdfs_io(int rdfs_fd, const void* buffer, uint64_t length, uint64_t offset,int io_flag)
 {
+	printf("%s\n",__func__);
 	struct rdfs_message message;
 	message.m_type = RDFS_CLIENT_WRITE;
 	map<int,struct rdfs_file*>::iterator it;
@@ -94,26 +101,29 @@ int rdfs_io(int rdfs_fd, const void* buffer, uint64_t length, uint64_t offset,in
 
 	sprintf(message.m_data,"%d:%ld:%ld",inode_ino,offset,length);
 	send_data(master_kernel_sock_fd,&message,sizeof(struct rdfs_message));
-	struct rdfs_search_message s_message;
-	recv_data(master_kernel_sock_fd,&s_message,sizeof(struct rdfs_search_message));
+	printf("%s send data:%s\n",__func__,message.m_data);
+	recv_data(master_kernel_sock_fd,&message,sizeof(struct rdfs_search_message));
+	printf("%s recv data:%s\n",__func__,message.m_data);
 	int nums,s_id,block_id,block_offset,size;
-	nums = s_message.nums;
+	nums = message.nums;
 	int i;
 	int ret;
 	unsigned long local_addr = rdfs_mapping_address();
+	char s[1000];
+	char *p = message.m_data;
 	for(i=0;i<nums;i++)
 	{
-		s_id = s_message.info[0][i];
-		block_id = s_message.info[1][i];
-		block_offset = s_message.info[2][i];
-		size = s_message.info[3][i];
-		ret = rdfs_rdma_block_rw(local_addr,s_id,block_id,block_offset,size,io_flag);
+		sscanf(p,"%ld:%ld:%ld:%ld:%s",&s_id,&block_id,&block_offset,&size,s);
+		printf("search data:%ld %ld %ld %ld\n",s_id,block_id,block_offset,size);
+		p = s;
+		//ret = rdfs_rdma_block_rw(local_addr,s_id,block_id,block_offset,size,io_flag);
 		local_addr += ret;
 	}
 	return length;
 }
 int rdfsWrite(int rdfs_fd, const void* buffer, uint64_t length, uint64_t offset)
 {
+	printf("%s\n",__func__);
 	return rdfs_io(rdfs_fd,buffer,length,offset,RDFS_WRITE);
 }
 
@@ -141,6 +151,7 @@ int rdfsDisconnect(void)
 {
 	printf("%s\n",__func__);
 	close(master_userspace_sock_fd);
+	close(master_kernel_sock_fd);
 	return 0;
 }
 int main()
@@ -150,12 +161,14 @@ int main()
 	int open_fd1 = rdfsOpenFile("/mnt/hmfs/a",O_RDWR|O_CREAT);
 	printf("opened file fd:%d\n",open_fd1);
 	
-	int open_fd2 = rdfsOpenFile("/mnt/hmfs/b",O_RDWR|O_CREAT);
-	printf("opened file fd:%d\n",open_fd2);
+	//int open_fd2 = rdfsOpenFile("/mnt/hmfs/b",O_RDWR|O_CREAT);
+	//printf("opened file fd:%d\n",open_fd2);
 
-	rdfsCloseFile(open_fd1);
 	
-	rdfsCloseFile(open_fd2);
+	char buf[100];
+	rdfsWrite(open_fd1,buf,10000,0);
+	rdfsCloseFile(open_fd1);
+	//rdfsCloseFile(open_fd2);
 	while(1);
 	
 	//rdfsDisconnect();

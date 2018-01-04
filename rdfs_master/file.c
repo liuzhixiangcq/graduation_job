@@ -98,17 +98,9 @@ static int rdfs_open_file(struct inode *inode, struct file *filp)
 	rdfs_init_local_rw_buffer();
 	if(S_ISREG(inode->i_mode))
 		atomic_inc(&(RDFS_I(inode)->i_p_counter));
-	if(!(filp->f_flags & O_LARGEFILE))
-	{
-		printk("%s flag error\n",__FUNCTION__);
-	}
-	if(i_size_read(inode) > MAX_NON_LFS)
-	{
-		printk("%s inode size :%lx eror\n",__FUNCTION__,i_size_read(inode));
-	}
 	printk("%s open end\n",__FUNCTION__);
-	return 0;
-	//return generic_file_open(inode, filp);
+	
+	return generic_file_open(inode, filp);
 }
 
 

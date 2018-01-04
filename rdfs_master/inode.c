@@ -183,6 +183,7 @@ int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type)
 			else
 			{
 				rdfs_new_pte(ni_info,&pte_addr);
+				printk("++++:pte_addr=%lx\n",pte_addr);
 			}
             
 	           
