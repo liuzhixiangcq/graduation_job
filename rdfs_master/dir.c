@@ -45,7 +45,7 @@ static unsigned char rdfs_type_by_mode[S_IFMT >> S_SHIFT] = {
 
 static inline int rdfs_match(int len,const char* const name,struct rdfs_dir_entry *de)
 {
-	rdfs_trace();
+//	rdfs_trace();
     if(len != de->name_len)
         return 0;
     if(!de->inode)

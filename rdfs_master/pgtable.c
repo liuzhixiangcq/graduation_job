@@ -135,7 +135,7 @@ int rdfs_init_pg_table(struct super_block * sb, u64 ino)
     pmd_t *pmd;
     pte_t *pte;
     struct rdfs_inode *ni = get_rdfs_inode(sb, ino);
-    printk("%s ni:%lx\n",__FUNCTION__,ni);
+//    printk("%s ni:%lx\n",__FUNCTION__,ni);
     pud = rdfs_pud_alloc_one();
     pmd = rdfs_pmd_alloc_one();
     pte = rdfs_pte_alloc_one();
@@ -170,10 +170,11 @@ int rdfs_insert_page(struct super_block *sb, struct inode *vfs_inode, phys_addr_
 
     ino = vfs_inode->i_ino;
     addr = (unsigned long)(RDFS_I(vfs_inode))->i_virt_addr;
+   // printk("################: i_virt_addr:%lx pte_info:%lx pte_addr:%lx pte_addr:%lx \n",addr,*(unsigned long *)(rdfs_va(phys)),phys,phys| __PAGE_KERNEL);
     blocks = vfs_inode->i_blocks;
     offset = ((blocks - 1) << PAGE_SHIFT);
     new_addr = addr + offset;
-
+  //  printk("blocks:%lx new_addr:%lx\n",blocks,new_addr);
     pud = rdfs_pud_alloc(sb, ino, offset);
 
     if (unlikely(!pud)){
@@ -301,13 +302,13 @@ int rdfs_establish_mapping(struct inode *inode)
 	if(!vaddr){
 		if((S_ISDIR(inode->i_mode)) || (S_ISLNK(inode->i_mode))) 
 		{
-			printk("%s i_mode is dir\n",__FUNCTION__);
+		//	printk("%s i_mode is dir\n",__FUNCTION__);
 			mode = 1;
 			ni_info->i_virt_addr = nvmalloc(mode);
 		}
 		else if(S_ISREG(inode->i_mode))
 		{
-            printk("%s i_mode is reg file\n",__FUNCTION__);
+         //   printk("%s i_mode is reg file\n",__FUNCTION__);
 			mode = 0;
 			ni_info->i_virt_addr = nvmalloc(mode);				
 		    p_address=rdfs_address_to_ino(sb,(unsigned long)ni_info->i_virt_addr);
@@ -365,9 +366,9 @@ int rdfs_destroy_mapping(struct inode *inode)
 int rdfs_search_metadata(struct rdfs_inode_info * ri_info,unsigned long offset,unsigned long *s_id,unsigned long *block_id)
 {
     rdfs_trace();
-    printk("%s ri_info:%lx offset:%lx\n",__FUNCTION__,ri_info,offset);
+    printk("%s i_virt_addr:%lx offset:%lx vaddr:%lx\n",__FUNCTION__,ri_info->i_virt_addr,offset,(unsigned long*)(ri_info->i_virt_addr+offset / 4096 * 8));
     unsigned long pte_value = 0;
-    pte_value = *(unsigned long *)(ri_info->i_virt_addr + offset);
+    pte_value = *(unsigned long *)(ri_info->i_virt_addr + offset / 4096 * 8);
     printk("*******:pte_value:%lx\n",pte_value);
     *s_id = (pte_value & SLAVE_ID_MASK) >> SLAVE_ID_SHIFT;
     *block_id = (pte_value & BLOCK_ID_MASK) >> BLOCK_ID_SHIFT;

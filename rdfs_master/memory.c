@@ -292,6 +292,29 @@
 	 }
 	 return 0;
  }
+ int pte_cnt = PAGE_PTE_NUMS;
+ phys_addr_t pte_phy_addr = 0;
+ int rdfs_new_page_pte(struct rdfs_inode_info * ri_info,struct rdfs_inode *ni, unsigned long *phyaddr)
+ {
+	unsigned long pte_value;
+	unsigned long s_id,block_id;
+	if(pte_cnt == PAGE_PTE_NUMS)
+	{
+		rdfs_new_block(&pte_phy_addr, 1, ni);
+		pte_cnt = 0;
+	}
+	printk("pte_phy_addr:%lx\n",pte_phy_addr);
+	*phyaddr = pte_phy_addr;
+	rdfs_alloc_slave_bitmap_memory(ri_info,&block_id,&s_id);
+	printk("s_id:%lx block_id:%lx\n",s_id,block_id);
+	pte_value = (s_id << SLAVE_ID_SHIFT) | (block_id << BLOCK_ID_SHIFT); 
+	unsigned long pte_addr = pte_phy_addr + pte_cnt * 8;
+	printk("cur pte_addr:%lx\n",pte_addr);
+	*(unsigned long*)(rdfs_va(pte_addr)) = pte_value;
+	pte_cnt ++;
+	printk("!!!! pte_addr:%lx pte_value:%lx\n",pte_addr,pte_value);
+	return 0;
+ }
  int rdfs_new_pte(struct rdfs_inode_info * ri_info,unsigned long *phyaddr)
  {
 	 //int s_id = rdfs_select_slave();
@@ -313,10 +336,11 @@
 	 spin_unlock(&pte_free_list->pte_lock);
 	 rdfs_alloc_slave_bitmap_memory(ri_info,&block_id,&s_id);
 	 
-	 pte_value = (s_id << SLAVE_ID_SHIFT) & (block_id << BLOCK_ID_SHIFT); 
+	 pte_value = (s_id << SLAVE_ID_SHIFT) | (block_id << BLOCK_ID_SHIFT); 
 	 
 	 *(unsigned long*)(rdfs_va(tmp)) = pte_value;
-	
+	 printk("!!!!!!!!!!!!!!! s_id:%lx block_id:%lx pte_value:%lx pte_addr:%lx tmp_addr:%lx\n",s_id,block_id,pte_value,*phyaddr,tmp);
+	 
 	 return 0;
  }
  int rdfs_free_pte(struct rdfs_inode_info * ri_info,unsigned long phyaddr)

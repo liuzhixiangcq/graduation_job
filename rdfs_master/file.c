@@ -176,7 +176,7 @@ ssize_t rdfs_local_file_read(struct file *filp,char __user *buf,size_t length,lo
 	printk("start :%ld ,end:%ld\n",start,end);
 	for(i=start;i<end;)
 	{
-		pte = i >> RDFS_BLOCK_SHIFT;
+		pte = (i >> RDFS_BLOCK_SHIFT) << RDFS_BLOCK_SHIFT;
 		block_offset = i & RDFS_BLOCK_OFFSET_MASK;
 		
 		size = RDFS_BLOCK_SIZE - block_offset;
@@ -192,7 +192,6 @@ ssize_t rdfs_local_file_read(struct file *filp,char __user *buf,size_t length,lo
 		//printk("copied:%lx\n",copied);
 		i += RDFS_BLOCK_SIZE - block_offset;
 	}
-    printk("content:%s\n",(char*)rdfs_va(global_phy_addr));
 	copied = __copy_to_user(buf,rdfs_va(global_phy_addr),length);
 	printk("%s copy to user:%ld\n",__FUNCTION__,copied);
 	*ppos = *ppos + length;
@@ -231,15 +230,13 @@ ssize_t rdfs_local_file_write(struct file *filp,const char __user *buf,size_t le
 	unsigned long rw_addr = local_rw_addr;
 	copied = __copy_from_user(rdfs_va(global_phy_addr),buf,length);
 	//*((char*)__va(global_phy_addr) + length) = '\0';
-	printk("1\n");
+	
 	*((char*)rdfs_va(global_phy_addr) + length) = '\0';
-	printk("2\n");
-	printk("content:%s\n",rdfs_va(global_phy_addr));
-	printk("3\n");
 	printk("%s copy from user copied:%ld\n",__FUNCTION__,copied);
 	printk("start :%ld ,end:%ld\n",start,end);
 	for(i=start;i<end;)
 	{
+		printk("i=%lx\n",i);
 		pte = (i >> RDFS_BLOCK_SHIFT) << RDFS_BLOCK_SHIFT;
 		block_offset = i & RDFS_BLOCK_OFFSET_MASK;
 		

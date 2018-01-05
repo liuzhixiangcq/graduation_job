@@ -55,7 +55,7 @@ u64 rdfs_find_data_block(struct inode *inode, unsigned long file_blocknr)
 {
 	struct super_block *sb = inode->i_sb;
 	struct rdfs_inode *ni = NULL;
-	rdfs_trace();
+//	rdfs_trace();
 	u64 *first_lev = NULL;		/* ptr to first level */
 	u64 *second_lev = NULL;	/* ptr to second level */
 	u64 *third_lev = NULL;		/* ptr to the third level*/
@@ -92,7 +92,7 @@ u64 rdfs_find_data_block(struct inode *inode, unsigned long file_blocknr)
 }
 static void __rdfs_truncate_blocks(struct inode *inode, loff_t start, loff_t end)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct super_block *sb = inode->i_sb;
 	struct rdfs_inode *ni;
 	unsigned long first_blocknr,last_blocknr;
@@ -132,7 +132,7 @@ static void __rdfs_truncate_blocks(struct inode *inode, loff_t start, loff_t end
 
 void rdfs_truncate_blocks(struct inode *inode, loff_t start, loff_t end)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	if (!(S_ISREG(inode->i_mode) || S_ISDIR(inode->i_mode) ||
 	      S_ISLNK(inode->i_mode)))
 		return;
@@ -182,7 +182,8 @@ int rdfs_alloc_blocks(struct inode *inode, int num, int zero,int type)
 			}
 			else
 			{
-				rdfs_new_pte(ni_info,&pte_addr);
+				rdfs_new_page_pte(ni_info,ni,&pte_addr);
+				//rdfs_new_pte(ni_info,&pte_addr);
 				printk("++++:pte_addr=%lx\n",pte_addr);
 			}
             
@@ -211,7 +212,7 @@ struct backing_dev_info rdfs_backing_dev_info __read_mostly = {
 
 static int rdfs_read_inode(struct inode *inode, struct rdfs_inode *ni)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	int ret = -EIO;
 	struct rdfs_inode_info *ni_info;
 	ni_info = RDFS_I(inode);
@@ -290,7 +291,7 @@ static int rdfs_read_inode(struct inode *inode, struct rdfs_inode *ni)
 
 int rdfs_update_inode(struct inode *inode)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct rdfs_inode *ni;
 	int retval = 0;
 
@@ -320,7 +321,7 @@ int rdfs_update_inode(struct inode *inode)
 
 void rdfs_free_inode(struct inode *inode)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct super_block *sb = inode->i_sb;
 	struct rdfs_super_block *ns;
 	struct rdfs_inode *ni;
@@ -359,7 +360,7 @@ void rdfs_free_inode(struct inode *inode)
 
 void rdfs_set_inode_flags(struct inode *inode)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	unsigned int flags = RDFS_I(inode)->i_flags;
 
 	inode->i_flags &= ~(S_SYNC|S_APPEND|S_IMMUTABLE|S_NOATIME|S_DIRSYNC);
@@ -377,7 +378,7 @@ void rdfs_set_inode_flags(struct inode *inode)
 
 void get_rdfs_inode_flags(struct rdfs_inode_info *ei)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	unsigned int flags = ei->vfs_inode.i_flags;
 	ei->i_flags &= ~(RDFS_SYNC_FL|RDFS_APPEND_FL|
 			RDFS_IMMUTABLE_FL|RDFS_NOATIME_FL|RDFS_DIRSYNC_FL);
@@ -395,7 +396,7 @@ void get_rdfs_inode_flags(struct rdfs_inode_info *ei)
 
 struct inode *rdfs_iget(struct super_block *sb, unsigned long ino)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct inode *inode;
 	struct rdfs_inode *ni;
 	int err;
@@ -429,7 +430,7 @@ fail:
 
 static void rdfs_inode_info_init(struct rdfs_inode_info* ni_info)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	if(ni_info!=NULL)
 	{
 		ni_info->i_state = RDFS_STATE_NEW;
@@ -457,7 +458,7 @@ static void rdfs_inode_info_init(struct rdfs_inode_info* ni_info)
 
 struct inode *rdfs_new_inode(struct inode *dir, umode_t mode, const struct qstr *qstr)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct super_block *sb;
 	struct rdfs_sb_info *sbi;
 	struct rdfs_super_block *ns;
@@ -573,7 +574,7 @@ fail1:
 
 static int rdfs_readpage(struct file *file, struct page *page)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct inode *inode = page->mapping->host;
 	struct super_block *sb = inode->i_sb;
 	loff_t offset = 0, size = 0;
@@ -633,7 +634,7 @@ static int rdfs_readpage(struct file *file, struct page *page)
 
 static int rdfs_block_truncate_page(struct inode *inode, loff_t newsize)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct super_block *sb = inode->i_sb;
 	unsigned long offset = newsize & (sb->s_blocksize - 1);
 	unsigned long length;
@@ -658,7 +659,7 @@ out:
 
 static int rdfs_setsize(struct inode *inode, loff_t newsize)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	int ret = 0;
 	loff_t oldsize = inode->i_size;
 	if (!(S_ISREG(inode->i_mode) || S_ISDIR(inode->i_mode) ||
@@ -696,7 +697,7 @@ static int rdfs_setsize(struct inode *inode, loff_t newsize)
 
 int __rdfs_write_inode(struct inode *inode, int do_sync)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct rdfs_inode_info *ni_info = RDFS_I(inode);
 	struct super_block *sb = inode->i_sb;
 	ino_t ino = inode->i_ino;
@@ -737,7 +738,7 @@ int __rdfs_write_inode(struct inode *inode, int do_sync)
 
 int rdfs_notify_change(struct dentry *dentry, struct iattr *attr)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct inode *inode = dentry->d_inode;
 	struct rdfs_inode *ni = get_rdfs_inode(inode->i_sb,inode->i_ino);
 	int error = 0;

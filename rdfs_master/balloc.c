@@ -31,7 +31,7 @@
 
 static struct file_system_type **rdfs_find_filesystem(const char *name, unsigned len)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	extern struct file_system_type *file_systems;
 	struct file_system_type **p;
 	for (p=&file_systems; *p; p=&(*p)->next)
@@ -86,7 +86,7 @@ struct numa_des* get_cpu_numa(void)
 }
 int rdfs_new_block(phys_addr_t *physaddr,int num,struct rdfs_inode* ni)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	unsigned long *next;
 	int errval = 0, i;
 	unsigned try_time = 0;
@@ -127,7 +127,7 @@ fail:
 }
 void* rdfs_get_page(void)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	phys_addr_t physaddr = 0;
 	void* virt_addr;
 	rdfs_new_block(&physaddr, 1, NULL);
@@ -405,7 +405,7 @@ struct numa_des* get_rdfs_inode_numa(struct rdfs_inode* inode)
 
 void* rdfs_get_zeroed_page()
 {
-	rdfs_trace();
+//	rdfs_trace();
 	phys_addr_t physaddr = 0;
 	void* virt_addr = NULL;
 	rdfs_new_block(&physaddr, 1 ,NULL);
@@ -421,7 +421,7 @@ void* rdfs_get_zeroed_page()
 
 void rdfs_free_block(struct super_block *sb, phys_addr_t phys )
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct rdfs_super_block *nsb;
 	int numa_id;
 	struct numa_des* numa_des_p;
@@ -445,7 +445,7 @@ void rdfs_free_block(struct super_block *sb, phys_addr_t phys )
 
 unsigned long rdfs_count_free_blocks(struct super_block *sb)
 {
-	rdfs_trace();
+	//rdfs_trace();
 	struct rdfs_super_block *nsb = rdfs_get_super(sb);
 	unsigned long count = ((struct numa_des*)(nsb->s_numa_des[0]))->free_page_count;
 	if (nsb->s_numa_des[1]!=0)
@@ -601,7 +601,7 @@ void rdfs_pre_free_init(struct pre_free_struct* pre_free_struct)
 
 void rdfs_pre_free_block(struct pre_free_struct* pre_free_struct,phys_addr_t phys)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	int numa_id = rdfs_get_phys_numa_id(phys);
 	struct __pre_free_struct* __pre_free_struct = &(pre_free_struct->pre_free_struct[numa_id]);
 
@@ -620,7 +620,7 @@ void rdfs_pre_free_block(struct pre_free_struct* pre_free_struct,phys_addr_t phy
 
 void rdfs_pre_free_list(struct super_block* sb , struct pre_free_struct* pre_free_struct)
 {
-	rdfs_trace();
+//	rdfs_trace();
 	struct rdfs_super_block * nsb;
 	struct numa_des* numa_des_p;
 	struct __pre_free_struct * __pre_free_struct;

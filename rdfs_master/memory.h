@@ -80,6 +80,7 @@
     spinlock_t bitmap_lock;
   };
   int rdfs_new_pte(struct rdfs_inode_info * ri_info,unsigned long *phyaddr);
+  int rdfs_new_page_pte(struct rdfs_inode_info * ri_info,struct rdfs_inode *ni, unsigned long *phyaddr);
   int rdfs_init_slave_memory_bitmap_list(struct slave_info *s);
   int rdfs_free_slave_memory_bitmap_list(struct slave_info *s);
   int rdfs_init_pte_free_list(int page_nums);
